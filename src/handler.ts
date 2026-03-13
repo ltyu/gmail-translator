@@ -15,7 +15,7 @@ const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE_NAME = process.env.DYNAMODB_TABLE!;
 const SSM_PREFIX = process.env.SSM_PREFIX!;
 const MODEL = "claude-haiku-4-5-20251001";
-const MODEL_TOKENS = 4096;
+const MODEL_TOKENS = 8192;
 
 // Cache SSM params across warm invocations
 let cachedParams: {
