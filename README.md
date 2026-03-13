@@ -1,0 +1,88 @@
+# Gmail Auto-Translator (English → Simplified Chinese)
+
+Automatically translates incoming English emails to Simplified Chinese using Claude and replies in-thread, so the translation appears right in Gmail.
+
+## How It Works
+
+An AWS Lambda runs every 5 minutes, checks for new emails, translates them, and sends the translation as a reply in the same thread:
+
+```
+EventBridge (every 5 min) → Lambda (Node.js 20 / TypeScript)
+                              ├── SSM Parameter Store (secrets)
+                              ├── Gmail API (fetch new emails)
+                              ├── Claude API (translate EN → ZH-CN)
+                              ├── Gmail API (reply with translation)
+                              └── DynamoDB (track processed emails)
+```
+
+Each translated reply looks like:
+
+```
+中文翻译 / Chinese Translation
+========================================
+[translated text]
+========================================
+--- Original English ---
+[original text]
+```
+
+DynamoDB tracks which emails have been processed (with 30-day auto-cleanup via TTL) so nothing gets translated twice.
+
+## Prerequisites
+
+1. **Google Cloud Project** — with Gmail API enabled and OAuth2 credentials (Desktop app type)
+2. **Anthropic API Key** — from [console.anthropic.com](https://console.anthropic.com)
+3. **AWS Account** — with AWS CLI configured (`aws configure`)
+4. **AWS SAM CLI** — [install guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+
+## Setup
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Get a Gmail OAuth refresh token
+
+Create OAuth2 credentials in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (Desktop app type), then run:
+
+```bash
+npx tsx setup-gmail-token.ts <client_id> <client_secret>
+```
+
+This opens a browser for Google consent and prints a refresh token. Save it for the next step.
+
+### 3. Deploy to AWS
+
+```bash
+sam build
+sam deploy --guided
+```
+
+SAM will prompt you for:
+
+| Parameter | Description |
+|---|---|
+| `AnthropicApiKeyParam` | Your Anthropic API key |
+| `GmailRefreshTokenParam` | The refresh token from step 2 |
+| `GmailClientIdParam` | Your Google OAuth2 client ID |
+| `GmailClientSecretParam` | Your Google OAuth2 client secret |
+
+All secrets are stored in AWS SSM Parameter Store.
+
+### 4. Verify
+
+1. Send a test English email to the Gmail account
+2. Wait up to 5 minutes (or invoke the Lambda manually from the AWS console)
+3. A translated reply should appear in the same email thread
+4. Check CloudWatch Logs for the `gmail-translator` function if anything goes wrong
+
+## Cost
+
+At low volume this is effectively free:
+
+- **Lambda** — well within free tier (runs for a few seconds every 5 min)
+- **DynamoDB** — pay-per-request, pennies per month
+- **SSM Parameter Store** — free for standard parameters
+- **Claude API** — ~$0.001–0.01 per email depending on length

@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Gmail English-to-Chinese translator using Claude
+
+Globals:
+  Function:
+    Timeout: 120
+    Runtime: nodejs20.x
+    MemorySize: 512
+
+Parameters:
+  AnthropicApiKeyParam:
+    Type: String
+    Description: Anthropic API key for Claude
+    NoEcho: true
+  GmailRefreshTokenParam:
+    Type: String
+    Description: Gmail OAuth2 refresh token
+    NoEcho: true
+  GmailClientIdParam:
+    Type: String
+    Description: Gmail OAuth2 client ID
+    NoEcho: true
+  GmailClientSecretParam:
+    Type: String
+    Description: Gmail OAuth2 client secret
+    NoEcho: true
+
+Resources:
+  TranslatedEmailsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: gmail-translated-emails
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: email_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email_id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  AnthropicApiKey:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /gmail-translator/anthropic-api-key
+      Type: String
+      Value: !Ref AnthropicApiKeyParam
+
+  GmailRefreshToken:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /gmail-translator/gmail-refresh-token
+      Type: String
+      Value: !Ref GmailRefreshTokenParam
+
+  GmailClientId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /gmail-translator/gmail-client-id
+      Type: String
+      Value: !Ref GmailClientIdParam
+
+  GmailClientSecret:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /gmail-translator/gmail-client-secret
+      Type: String
+      Value: !Ref GmailClientSecretParam
+
+  TranslatorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: gmail-translator
+      CodeUri: ./
+      Handler: handler.handler
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref TranslatedEmailsTable
+          SSM_PREFIX: /gmail-translator
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TranslatedEmailsTable
+        - SSMParameterReadPolicy:
+            ParameterName: gmail-translator/*
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
+            Enabled: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/handler.ts
+        External:
+          - '@aws-sdk/*'
+
+Outputs:
+  TranslatorFunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt TranslatorFunction.Arn
