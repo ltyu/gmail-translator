@@ -193,10 +193,11 @@ export async function handler(_event: ScheduledEvent): Promise<void> {
 
     // Build reply
     const replyBody = [
+      "⬇ 以下为自动翻译 / Auto-translated",
+      "----------------------------------------",
+      "",
       translation,
       "",
-      "----------------------------------------",
-      "⬆ 以上为自动翻译 / Auto-translated",
       "----------------------------------------",
       "",
       bodyText,
