@@ -2,6 +2,8 @@
 
 Automatically translates incoming English emails to Simplified Chinese using Claude and replies in-thread, so the translation appears right in Gmail.
 
+The Lambda keeps the orchestration in `handler.ts` while the Gmail, SSM, DynamoDB, translation, and parsing details live in focused helpers and services.
+
 ## How It Works
 
 An AWS Lambda runs every 5 minutes, checks for new emails, translates them, and sends the translation as a reply in the same thread:
@@ -18,11 +20,10 @@ EventBridge (every 5 min) → Lambda (Node.js 20 / TypeScript)
 Each translated reply looks like:
 
 ```
-中文翻译 / Chinese Translation
-========================================
+⬇ 以下为自动翻译 / Auto-translated
+----------------------------------------
 [translated text]
-========================================
---- Original English ---
+----------------------------------------
 [original text]
 ```
 
@@ -41,6 +42,12 @@ DynamoDB tracks which emails have been processed (with 30-day auto-cleanup via T
 
 ```bash
 npm install
+```
+
+Run the unit tests at any time with:
+
+```bash
+npm test
 ```
 
 ### 2. Get a Gmail OAuth refresh token
@@ -86,3 +93,27 @@ At low volume this is effectively free:
 - **DynamoDB** — pay-per-request, pennies per month
 - **SSM Parameter Store** — free for standard parameters
 - **Claude API** — ~$0.001–0.01 per email depending on length
+
+## Project Structure
+
+```text
+src/
+  utils/buildGmailClient.ts            # Gmail client construction
+  utils/emailParser.ts                # Gmail payload parsing helpers
+  utils/replyComposer.ts              # Reply message formatting
+  services/dynamoDbProcessedEmailService.ts
+  services/gmailMessageService.ts
+  services/parameterStore.ts
+  services/translatorService.ts
+  handler.ts                          # AWS Lambda entrypoint
+test/                                 # Vitest unit tests
+```
+
+## Development
+
+```bash
+npm test        # run tests in watch mode
+npm run test:run
+npx tsc --noEmit
+npm run build
+```

@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "declaration": false
   },
-  "include": ["src/**/*.ts", "setup-gmail-token.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "setup-gmail-token.ts", "vitest.config.ts"]
 }
