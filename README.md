@@ -50,6 +50,12 @@ Run the unit tests at any time with:
 npm test
 ```
 
+For secret scanning, install `gitleaks` locally and run:
+
+```bash
+npm run secrets:scan
+```
+
 ### 2. Get a Gmail OAuth refresh token
 
 Create OAuth2 credentials in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (Desktop app type), then run:
@@ -114,6 +120,14 @@ test/                                 # Vitest unit tests
 ```bash
 npm test        # run tests in watch mode
 npm run test:run
+npm run secrets:scan
+npm run secrets:scan:changes
 npx tsc --noEmit
 npm run build
 ```
+
+## Secret Scanning
+
+- `gitleaks` is used to scan the repo for hardcoded secrets
+- `.husky/pre-commit` runs `npm run secrets:scan:staged` before each commit
+- install `gitleaks` from the official releases: `https://github.com/gitleaks/gitleaks/releases`
