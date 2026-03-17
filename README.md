@@ -96,6 +96,7 @@ SAM now provisions:
 
 - `TranslatedEmailsTable` for processed-email dedupe
 - `GmailConnectionsTable` for per-user Gmail connections
+- `GoogleOAuthStatesTable` for short-lived OAuth state records
 - `GmailRefreshTokenKey` for encrypting per-user refresh tokens
 - SSM parameters for app-level secrets under `AppSecretsSsmPrefixParam`
 - scaffolded HttpApi routes and Lambda functions for `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect`
@@ -127,7 +128,9 @@ src/
   utils/emailParser.ts                # Gmail payload parsing helpers
   utils/replyComposer.ts              # Reply message formatting
   services/dynamoDbGmailConnectionRepository.ts
+  services/dynamoDbOAuthStateRepository.ts
   services/dynamoDbProcessedEmailRepository.ts
+  services/headerAuthenticatedAppUserProvider.ts
   services/gmailMessageService.ts
   services/kmsGmailTokenEncryptionService.ts
   services/parameterStore.ts

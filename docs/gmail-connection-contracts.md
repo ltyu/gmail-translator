@@ -7,6 +7,8 @@
 - `GMAIL_CONNECTIONS_TABLE`: DynamoDB table for per-user Gmail connections.
 - `GMAIL_CONNECTIONS_STATUS_INDEX`: GSI that uses `gsi1pk` / `gsi1sk` for status queries.
 - `GMAIL_TOKEN_KMS_KEY_ID`: KMS key or alias used to encrypt Gmail refresh tokens before persistence.
+- `GOOGLE_OAUTH_STATES_TABLE`: DynamoDB table for short-lived OAuth state records.
+- `GOOGLE_OAUTH_CALLBACK_URL`: callback URL registered with Google for the backend OAuth flow.
 - `GMAIL_CONNECTION_SUCCESS_REDIRECT_URL`: future OAuth callback success redirect target.
 - `GMAIL_CONNECTION_FAILURE_REDIRECT_URL`: future OAuth callback failure redirect target.
 - `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect` are scaffolded in SAM as HttpApi routes for later handler implementation.
@@ -22,6 +24,7 @@
 
 - Later request handlers should provide a stable internal `userId` through `AuthenticatedAppUserProvider`.
 - The repo does not assume Clerk, Auth0, Cognito, or any frontend SDK. Only the internal `userId` contract matters.
+- `LEY-11` currently resolves the signed-in user from the trusted `x-authenticated-user-id` request header via `HeaderAuthenticatedAppUserProvider`.
 - OAuth callback code should call `GmailConnectionRepository.upsertPrimary()` for the MVP.
 - Worker code that needs to process many users should call `listActive()` and decrypt each stored token with the same `userId` and `connectionId` encryption context.
 
