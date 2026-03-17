@@ -1,5 +1,9 @@
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { ProcessedEmailRepository } from "../types.js";
+import { ProcessedEmailRepository, ProcessedEmailScope } from "../types.js";
+
+function buildConnectionKey(scope: ProcessedEmailScope): string {
+  return `${scope.userId}:${scope.connectionId}`;
+}
 
 export class DynamoDbProcessedEmailRepository implements ProcessedEmailRepository {
   constructor(
@@ -7,19 +11,27 @@ export class DynamoDbProcessedEmailRepository implements ProcessedEmailRepositor
     private readonly tableName: string,
   ) {}
 
-  async isProcessed(emailId: string): Promise<boolean> {
+  async isProcessed(scope: ProcessedEmailScope, emailId: string): Promise<boolean> {
     const response = await this.ddb.send(
-      new GetCommand({ TableName: this.tableName, Key: { email_id: emailId } }),
+      new GetCommand({
+        TableName: this.tableName,
+        Key: { connection_id: buildConnectionKey(scope), email_id: emailId },
+      }),
     );
     return !!response.Item;
   }
 
-  async markProcessed(emailId: string): Promise<void> {
+  async markProcessed(scope: ProcessedEmailScope, emailId: string): Promise<void> {
     const ttl = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
     await this.ddb.send(
       new PutCommand({
         TableName: this.tableName,
-        Item: { email_id: emailId, ttl, processed_at: new Date().toISOString() },
+        Item: {
+          connection_id: buildConnectionKey(scope),
+          email_id: emailId,
+          ttl,
+          processed_at: new Date().toISOString(),
+        },
       }),
     );
   }

@@ -149,7 +149,12 @@ export interface TranslationService {
   translateText(text: string): Promise<string>;
 }
 
+export interface ProcessedEmailScope {
+  userId: string;
+  connectionId: string;
+}
+
 export interface ProcessedEmailRepository {
-  isProcessed(emailId: string): Promise<boolean>;
-  markProcessed(emailId: string): Promise<void>;
+  isProcessed(scope: ProcessedEmailScope, emailId: string): Promise<boolean>;
+  markProcessed(scope: ProcessedEmailScope, emailId: string): Promise<void>;
 }

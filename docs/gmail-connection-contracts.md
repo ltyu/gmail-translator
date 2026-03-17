@@ -3,7 +3,7 @@
 ## Runtime configuration
 
 - `APP_SECRETS_SSM_PREFIX`: SSM prefix for app-level secrets only.
-- `PROCESSED_EMAILS_TABLE`: DynamoDB table for translated-email dedupe state.
+- `PROCESSED_EMAILS_TABLE`: DynamoDB table for connection-scoped translated-email dedupe state.
 - `GMAIL_CONNECTIONS_TABLE`: DynamoDB table for per-user Gmail connections.
 - `GMAIL_CONNECTIONS_STATUS_INDEX`: GSI that uses `gsi1pk` / `gsi1sk` for status queries.
 - `GMAIL_TOKEN_KMS_KEY_ID`: KMS key or alias used to encrypt Gmail refresh tokens before persistence.
@@ -36,6 +36,12 @@
 - This allows a future multi-connection rollout to add non-primary sort keys without changing the partition model.
 - Status index records use `gsi1pk = <status>` and `gsi1sk = <updatedAt>`.
 - The persisted connection item stays intentionally small: status, stable Google subject, optional Gmail address, encrypted refresh token, and timestamps.
+
+## Processed email dedupe
+
+- Processed-email records are keyed by `connection_id = <userId>:<connectionId>` and `email_id = <gmailMessageId>`.
+- This keeps dedupe idempotent within one Gmail connection while preventing cross-account collisions.
+- TTL cleanup remains on the processed-email records through the `ttl` attribute.
 
 ## Status and token lifecycle
 

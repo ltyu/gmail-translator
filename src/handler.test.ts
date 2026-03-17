@@ -24,6 +24,7 @@ describe("EmailTranslationJob", () => {
     markProcessed: vi.fn(),
   };
   const logger = { log: vi.fn() };
+  const processedEmailScope = { userId: "user-123", connectionId: "primary" };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -35,7 +36,7 @@ describe("EmailTranslationJob", () => {
     vi.mocked(gmailService.listRecentInboxMessages).mockResolvedValue([{ id: "1" }]);
     vi.mocked(processedEmailRepository.isProcessed).mockResolvedValue(true);
 
-    await processInbox(gmailService, translationService, processedEmailRepository, logger);
+    await processInbox(gmailService, translationService, processedEmailRepository, logger, processedEmailScope);
 
     expect(gmailService.getMessage).not.toHaveBeenCalled();
     expect(processedEmailRepository.markProcessed).not.toHaveBeenCalled();
@@ -46,11 +47,11 @@ describe("EmailTranslationJob", () => {
     vi.mocked(processedEmailRepository.isProcessed).mockResolvedValue(false);
     vi.mocked(gmailService.getMessage).mockResolvedValue(makeMessage({ bodyText: "   " }));
 
-    await processInbox(gmailService, translationService, processedEmailRepository, logger);
+    await processInbox(gmailService, translationService, processedEmailRepository, logger, processedEmailScope);
 
     expect(translationService.translateText).not.toHaveBeenCalled();
     expect(gmailService.sendReply).not.toHaveBeenCalled();
-    expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith("1");
+    expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith(processedEmailScope, "1");
   });
 
   it("translates, replies, and marks processed", async () => {
@@ -59,7 +60,7 @@ describe("EmailTranslationJob", () => {
     vi.mocked(gmailService.getMessage).mockResolvedValue(makeMessage());
     vi.mocked(translationService.translateText).mockResolvedValue("translated");
 
-    await processInbox(gmailService, translationService, processedEmailRepository, logger);
+    await processInbox(gmailService, translationService, processedEmailRepository, logger, processedEmailScope);
 
     expect(translationService.translateText).toHaveBeenCalledWith("Body text");
     expect(gmailService.sendReply).toHaveBeenCalledWith({
@@ -70,7 +71,7 @@ describe("EmailTranslationJob", () => {
       translation: "translated",
       originalText: "Body text",
     });
-    expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith("1");
+    expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith(processedEmailScope, "1");
   });
 });
 
@@ -129,8 +130,14 @@ describe("processActiveConnections", () => {
       userId: "user-123",
       connectionId: "primary",
     });
-    expect(processedEmailRepository.isProcessed).toHaveBeenCalledWith("user-123:msg-1");
-    expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith("user-123:msg-1");
+    expect(processedEmailRepository.isProcessed).toHaveBeenCalledWith(
+      { userId: "user-123", connectionId: "primary" },
+      "msg-1",
+    );
+    expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith(
+      { userId: "user-123", connectionId: "primary" },
+      "msg-1",
+    );
     expect(gmailConnectionRepository.markError).not.toHaveBeenCalled();
   });
 

@@ -84,6 +84,7 @@ Repository guidance for coding agents working in `gmail-translator`.
 - Keep orchestration logic in testable functions like `processInbox`.
 - Preserve dependency injection patterns that make units easy to mock.
 - Use `Repository` for persistence-focused adapters such as DynamoDB-backed storage wrappers; reserve `Service` for broader behavior or external API integrations.
+- Use `Provider` for code that resolves and supplies context or values to other code, such as authenticated-user lookup from request context.
 
 ## Secrets And Safety
 

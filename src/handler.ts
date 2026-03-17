@@ -92,24 +92,6 @@ function createConnectionLogger(
   };
 }
 
-function createScopedProcessedEmailRepository(
-  repository: ProcessedEmailRepository,
-  connection: GmailConnectionRecord,
-): ProcessedEmailRepository {
-  function scopedMessageId(emailId: string): string {
-    return `${connection.userId}:${emailId}`;
-  }
-
-  return {
-    isProcessed(emailId: string) {
-      return repository.isProcessed(scopedMessageId(emailId));
-    },
-    markProcessed(emailId: string) {
-      return repository.markProcessed(scopedMessageId(emailId));
-    },
-  };
-}
-
 export async function processActiveConnections(
   connections: GmailConnectionRecord[],
   gmailConnectionRepository: GmailConnectionRepository,
@@ -147,8 +129,9 @@ export async function processActiveConnections(
       await processInbox(
         gmailService,
         translationService,
-        createScopedProcessedEmailRepository(processedEmailRepository, connection),
+        processedEmailRepository,
         connectionLogger,
+        { userId: connection.userId, connectionId: connection.connectionId },
       );
     } catch (error) {
       connectionLogger.log(
@@ -168,6 +151,7 @@ export async function processInbox(
   translationService: TranslationService,
   processedEmailRepository: ProcessedEmailRepository,
   logger: Pick<Console, "log"> = console,
+  processedEmailScope?: { userId: string; connectionId: string },
 ): Promise<void> {
   const myEmail = await gmailService.getAuthenticatedEmail();
   const tenMinAgo = Math.floor((Date.now() - 10 * 60 * 1000) / 1000);
@@ -176,7 +160,11 @@ export async function processInbox(
   logger.log(`Found ${messages.length} recent messages`);
 
   for (const message of messages) {
-    if (await processedEmailRepository.isProcessed(message.id)) {
+    if (!processedEmailScope) {
+      throw new Error("Missing processed email scope");
+    }
+
+    if (await processedEmailRepository.isProcessed(processedEmailScope, message.id)) {
       logger.log(`Skipping already processed: ${message.id}`);
       continue;
     }
@@ -186,7 +174,7 @@ export async function processInbox(
 
     if (!fullMessage.bodyText.trim()) {
       logger.log(`Empty body, skipping: ${message.id}`);
-      await processedEmailRepository.markProcessed(message.id);
+      await processedEmailRepository.markProcessed(processedEmailScope, message.id);
       continue;
     }
 
@@ -202,7 +190,7 @@ export async function processInbox(
     });
 
     logger.log(`Replied with translation for: "${fullMessage.subject}"`);
-    await processedEmailRepository.markProcessed(message.id);
+    await processedEmailRepository.markProcessed(processedEmailScope, message.id);
   }
 
   logger.log("Done");

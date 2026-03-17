@@ -45,11 +45,15 @@ Resources:
       TableName: gmail-translated-emails
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
+        - AttributeName: connection_id
+          AttributeType: S
         - AttributeName: email_id
           AttributeType: S
       KeySchema:
-        - AttributeName: email_id
+        - AttributeName: connection_id
           KeyType: HASH
+        - AttributeName: email_id
+          KeyType: RANGE
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true

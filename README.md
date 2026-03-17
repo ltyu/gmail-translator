@@ -92,7 +92,7 @@ SAM will prompt you for:
 
 SAM now provisions:
 
-- `TranslatedEmailsTable` for processed-email dedupe
+- `TranslatedEmailsTable` for connection-scoped processed-email dedupe
 - `GmailConnectionsTable` for per-user Gmail connections
 - `GoogleOAuthStatesTable` for short-lived OAuth state records
 - `GmailRefreshTokenKey` for encrypting per-user refresh tokens
