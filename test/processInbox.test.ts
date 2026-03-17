@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { processInbox } from "../src/handler.js";
-import { EmailMessage, GmailService, ProcessedEmailRepository, TranslationService } from "../src/types.js";
+import { processActiveConnections, processInbox } from "../src/handler.js";
+import {
+  EmailMessage,
+  GmailConnectionRepository,
+  GmailTokenEncryptionService,
+  GmailService,
+  ProcessedEmailRepository,
+  TranslationService,
+} from "../src/types.js";
 
 describe("EmailTranslationJob", () => {
   const gmailService: GmailService = {
@@ -66,6 +73,114 @@ describe("EmailTranslationJob", () => {
     expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith("1");
   });
 });
+
+describe("processActiveConnections", () => {
+  it("processes each active connection with a scoped processed-email key", async () => {
+    const gmailConnectionRepository: GmailConnectionRepository = {
+      upsertPrimary: vi.fn(),
+      loadPrimaryByUserId: vi.fn(),
+      listActive: vi.fn(),
+      markRevoked: vi.fn(),
+      markError: vi.fn(),
+      clearRefreshToken: vi.fn(),
+      removePrimary: vi.fn(),
+    };
+    const tokenEncryptionService: GmailTokenEncryptionService = {
+      encryptRefreshToken: vi.fn(),
+      decryptRefreshToken: vi.fn().mockResolvedValue("refresh-token"),
+    };
+    const translationService: TranslationService = {
+      translateText: vi.fn().mockResolvedValue("translated"),
+    };
+    const processedEmailRepository: ProcessedEmailRepository = {
+      isProcessed: vi.fn().mockResolvedValue(false),
+      markProcessed: vi.fn(),
+    };
+
+    const gmailService: GmailService = {
+      getAuthenticatedEmail: vi.fn().mockResolvedValue("me@example.com"),
+      listRecentInboxMessages: vi.fn().mockResolvedValue([{ id: "msg-1" }]),
+      getMessage: vi.fn().mockResolvedValue(makeMessage({ id: "msg-1" })),
+      sendReply: vi.fn(),
+    };
+
+    await processActiveConnections(
+      [
+        {
+          userId: "user-123",
+          connectionId: "primary",
+          status: "active",
+          googleSub: "google-sub-123",
+          encryptedRefreshToken: "ciphertext",
+          createdAt: "2026-03-17T10:00:00.000Z",
+          updatedAt: "2026-03-17T10:00:00.000Z",
+        },
+      ],
+      gmailConnectionRepository,
+      tokenEncryptionService,
+      { gmailOAuthClientId: "client-id", gmailOAuthClientSecret: "client-secret" },
+      translationService,
+      processedEmailRepository,
+      { log: vi.fn() },
+      () => gmailService,
+    );
+
+    expect(tokenEncryptionService.decryptRefreshToken).toHaveBeenCalledWith("ciphertext", {
+      userId: "user-123",
+      connectionId: "primary",
+    });
+    expect(processedEmailRepository.isProcessed).toHaveBeenCalledWith("user-123:msg-1");
+    expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith("user-123:msg-1");
+    expect(gmailConnectionRepository.markError).not.toHaveBeenCalled();
+  });
+
+  it("marks the connection as error after a permanent auth failure", async () => {
+    const gmailConnectionRepository: GmailConnectionRepository = {
+      upsertPrimary: vi.fn(),
+      loadPrimaryByUserId: vi.fn(),
+      listActive: vi.fn(),
+      markRevoked: vi.fn(),
+      markError: vi.fn().mockResolvedValue(undefined),
+      clearRefreshToken: vi.fn(),
+      removePrimary: vi.fn(),
+    };
+    const tokenEncryptionService: GmailTokenEncryptionService = {
+      encryptRefreshToken: vi.fn(),
+      decryptRefreshToken: vi.fn().mockRejectedValue(new Error("invalid_grant")),
+    };
+
+    await processActiveConnections(
+      [
+        {
+          userId: "user-123",
+          connectionId: "primary",
+          status: "active",
+          googleSub: "google-sub-123",
+          encryptedRefreshToken: "ciphertext",
+          createdAt: "2026-03-17T10:00:00.000Z",
+          updatedAt: "2026-03-17T10:00:00.000Z",
+        },
+      ],
+      gmailConnectionRepository,
+      tokenEncryptionService,
+      { gmailOAuthClientId: "client-id", gmailOAuthClientSecret: "client-secret" },
+      { translateText: vi.fn() },
+      { isProcessed: vi.fn(), markProcessed: vi.fn() },
+      { log: vi.fn() },
+      () => gmailServiceThatShouldNotBeUsed(),
+    );
+
+    expect(gmailConnectionRepository.markError).toHaveBeenCalledTimes(1);
+    expect(gmailConnectionRepository.markError).toHaveBeenCalledWith(
+      "user-123",
+      expect.any(String),
+    );
+  });
+});
+
+function gmailServiceThatShouldNotBeUsed(): GmailService {
+  throw new Error("createGmailService should not be called");
+}
 
 function makeMessage(overrides: Partial<EmailMessage> = {}): EmailMessage {
   return {

@@ -109,19 +109,28 @@ export class DynamoDbGmailConnectionRepository implements GmailConnectionReposit
   }
 
   async listActive(limit?: number): Promise<GmailConnectionRecord[]> {
-    const response = await this.ddb.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        IndexName: this.statusIndexName,
-        KeyConditionExpression: "gsi1pk = :status",
-        ExpressionAttributeValues: {
-          ":status": "active",
-        },
-        Limit: limit,
-      }),
-    );
+    const records: GmailConnectionRecord[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
 
-    return (response.Items ?? []).map((item) => fromItem(item as GmailConnectionItem));
+    do {
+      const response = await this.ddb.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          IndexName: this.statusIndexName,
+          KeyConditionExpression: "gsi1pk = :status",
+          ExpressionAttributeValues: {
+            ":status": "active",
+          },
+          Limit: limit,
+          ExclusiveStartKey: exclusiveStartKey,
+        }),
+      );
+
+      records.push(...(response.Items ?? []).map((item) => fromItem(item as GmailConnectionItem)));
+      exclusiveStartKey = response.LastEvaluatedKey as Record<string, unknown> | undefined;
+    } while (exclusiveStartKey && limit === undefined);
+
+    return records;
   }
 
   async markRevoked(userId: string, occurredAt: string): Promise<void> {

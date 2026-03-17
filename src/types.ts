@@ -11,7 +11,6 @@ export interface AppSecrets {
   anthropicApiKey: string;
   gmailOAuthClientId: string;
   gmailOAuthClientSecret: string;
-  legacyGmailRefreshToken?: string;
 }
 
 export interface GmailOAuthAppCredentials {

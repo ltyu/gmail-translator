@@ -56,22 +56,20 @@ For secret scanning, install `gitleaks` locally and run:
 npm run secrets:scan
 ```
 
-### 2. Current single-account bootstrap
+### 2. OAuth setup
 
-Until `LEY-8` migrates the scheduled worker to per-user Gmail connections, the deployed translator still needs one legacy Gmail refresh token in SSM. Create Desktop app OAuth2 credentials in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials), then run:
+Create Google OAuth credentials in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+
+- use a Google OAuth **Web application** client for the backend start/callback flow
+- register the callback URL you will supply through `GoogleOAuthCallbackUrlParam`
+
+If you still need a local one-off token for manual testing, you can use the legacy helper:
 
 ```bash
 npx tsx setup-gmail-token.ts <client_id> <client_secret>
 ```
 
-This opens a browser for Google consent and prints a refresh token. Save it for the next step.
-
-For the external-user OAuth MVP, the long-term direction is different:
-
-- use a Google OAuth **Web application** client for backend start/callback handlers
-- keep app-wide secrets in SSM under one configurable prefix
-- store per-user Gmail refresh tokens encrypted with KMS in DynamoDB
-- use configurable success/failure redirect URLs for callback responses
+This opens a browser for Google consent and prints a refresh token for local/manual use. The deployed multi-user flow stores per-user refresh tokens encrypted with KMS in DynamoDB instead of relying on a single shared token.
 
 ### 3. Deploy to AWS
 
@@ -85,12 +83,12 @@ SAM will prompt you for:
 | Parameter | Description |
 |---|---|
 | `AnthropicApiKeyParam` | Your Anthropic API key |
-| `GmailRefreshTokenParam` | Legacy refresh token from step 2, required until the worker is migrated off the single-account path |
 | `GmailClientIdParam` | Your Google OAuth2 client ID |
 | `GmailClientSecretParam` | Your Google OAuth2 client secret |
 | `AppSecretsSsmPrefixParam` | SSM prefix for app-level secrets |
 | `GmailConnectionSuccessRedirectUrlParam` | Future OAuth success redirect URL |
 | `GmailConnectionFailureRedirectUrlParam` | Future OAuth failure redirect URL |
+| `GoogleOAuthCallbackUrlParam` | Backend callback URL registered with Google OAuth |
 
 SAM now provisions:
 
@@ -101,7 +99,6 @@ SAM now provisions:
 - SSM parameters for app-level secrets under `AppSecretsSsmPrefixParam`
 - scaffolded HttpApi routes and Lambda functions for `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect`
 
-Important: the legacy single-account refresh token is still provisioned in SSM for the scheduled worker until `LEY-8` lands. Fresh environments should keep that parameter in place for now.
 The OAuth start and callback handlers are implemented in the stacked MVP work, while the disconnect handler remains a placeholder until `LEY-7`.
 
 ### 4. Verify

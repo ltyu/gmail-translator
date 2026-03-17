@@ -18,7 +18,7 @@
 - `ParameterStoreService` now loads only app-wide secrets: Anthropic API key, Gmail OAuth client ID, Gmail OAuth client secret.
 - Per-user Gmail refresh tokens must be encrypted with KMS and stored only in `GMAIL_CONNECTIONS_TABLE`.
 - `buildGmailClient` now requires app OAuth credentials plus a user-scoped refresh token supplied by caller code.
-- The scheduled worker still uses the legacy `gmail-refresh-token` SSM parameter until `LEY-8` removes the single-account path.
+- The scheduled worker now lists active Gmail connections from DynamoDB, decrypts each refresh token with KMS, and processes each inbox sequentially.
 
 ## Request and auth boundary for later issues
 

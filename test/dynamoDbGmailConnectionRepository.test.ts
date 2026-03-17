@@ -115,6 +115,47 @@ describe("DynamoDbGmailConnectionRepository", () => {
     expect(command.input.Limit).toBe(25);
   });
 
+  it("keeps querying active connections until all pages are loaded", async () => {
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce({
+        Items: [
+          {
+            pk: "user-123",
+            sk: "primary",
+            gsi1pk: "active",
+            gsi1sk: "2026-03-17T10:00:00.000Z",
+            status: "active",
+            googleSub: "google-sub-123",
+            createdAt: "2026-03-17T10:00:00.000Z",
+            updatedAt: "2026-03-17T10:00:00.000Z",
+          },
+        ],
+        LastEvaluatedKey: { pk: "user-123", sk: "primary" },
+      })
+      .mockResolvedValueOnce({
+        Items: [
+          {
+            pk: "user-456",
+            sk: "primary",
+            gsi1pk: "active",
+            gsi1sk: "2026-03-17T10:05:00.000Z",
+            status: "active",
+            googleSub: "google-sub-456",
+            createdAt: "2026-03-17T10:05:00.000Z",
+            updatedAt: "2026-03-17T10:05:00.000Z",
+          },
+        ],
+      });
+    const repository = new DynamoDbGmailConnectionRepository({ send } as any, "gmail-connections", "status-index");
+
+    const records = await repository.listActive();
+
+    expect(records).toHaveLength(2);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send.mock.calls[1][0].input.ExclusiveStartKey).toEqual({ pk: "user-123", sk: "primary" });
+  });
+
   it("marks a connection revoked", async () => {
     const send = vi.fn().mockResolvedValue({});
     const repository = new DynamoDbGmailConnectionRepository({ send } as any, "gmail-connections", "status-index");
