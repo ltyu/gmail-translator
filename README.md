@@ -61,7 +61,8 @@ npm run secrets:scan
 Create Google OAuth credentials in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
 
 - use a Google OAuth **Web application** client for the backend start/callback flow
-- register the callback URL you will supply through `GoogleOAuthCallbackUrlParam`
+- register the callback URL from the deployed stack output `GoogleOAuthCallbackUrl`
+- expect the app to request identity scopes (`openid`, `email`) in addition to the minimal Gmail scopes needed for inbox processing
 
 If you still need a local one-off token for manual testing, you can use the legacy helper:
 
@@ -88,7 +89,6 @@ SAM will prompt you for:
 | `AppSecretsSsmPrefixParam` | SSM prefix for app-level secrets |
 | `GmailConnectionSuccessRedirectUrlParam` | Future OAuth success redirect URL |
 | `GmailConnectionFailureRedirectUrlParam` | Future OAuth failure redirect URL |
-| `GoogleOAuthCallbackUrlParam` | Backend callback URL registered with Google OAuth |
 
 SAM now provisions:
 
@@ -98,6 +98,7 @@ SAM now provisions:
 - `GmailRefreshTokenKey` for encrypting per-user refresh tokens
 - SSM parameters for app-level secrets under `AppSecretsSsmPrefixParam`
 - scaffolded HttpApi routes and Lambda functions for `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect`
+- stack outputs for `OAuthHttpApiBaseUrl` and `GoogleOAuthCallbackUrl`
 
 The OAuth start and callback handlers are implemented in the stacked MVP work, while the disconnect handler remains a placeholder until `LEY-7`.
 
