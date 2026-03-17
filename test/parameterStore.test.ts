@@ -6,7 +6,6 @@ describe("ParameterStoreService", () => {
     const send = vi
       .fn()
       .mockResolvedValueOnce({ Parameter: { Value: "anthropic-key" } })
-      .mockResolvedValueOnce({ Parameter: { Value: "refresh-token" } })
       .mockResolvedValueOnce({ Parameter: { Value: "client-id" } })
       .mockResolvedValueOnce({ Parameter: { Value: "client-secret" } });
 
@@ -14,13 +13,12 @@ describe("ParameterStoreService", () => {
 
     await expect(service.loadParams()).resolves.toEqual({
       anthropicApiKey: "anthropic-key",
-      refreshToken: "refresh-token",
-      clientId: "client-id",
-      clientSecret: "client-secret",
+      gmailOAuthClientId: "client-id",
+      gmailOAuthClientSecret: "client-secret",
     });
     await service.loadParams();
 
-    expect(send).toHaveBeenCalledTimes(4);
+    expect(send).toHaveBeenCalledTimes(3);
   });
 
   it("throws when a parameter is missing", async () => {

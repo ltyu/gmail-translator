@@ -14,14 +14,17 @@ export class ParameterStoreService {
       return this.cachedParams;
     }
 
-    const [anthropicApiKey, refreshToken, clientId, clientSecret] = await Promise.all([
+    const [anthropicApiKey, gmailOAuthClientId, gmailOAuthClientSecret] = await Promise.all([
       this.getParam("anthropic-api-key"),
-      this.getParam("gmail-refresh-token"),
       this.getParam("gmail-client-id"),
       this.getParam("gmail-client-secret"),
     ]);
 
-    this.cachedParams = { anthropicApiKey, refreshToken, clientId, clientSecret };
+    this.cachedParams = {
+      anthropicApiKey,
+      gmailOAuthClientId,
+      gmailOAuthClientSecret,
+    };
     return this.cachedParams;
   }
 

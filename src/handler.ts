@@ -19,28 +19,55 @@ const ssm = new SSMClient({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 function getConfig(): AppConfig {
-  const dynamoDbTable = process.env.DYNAMODB_TABLE;
-  const ssmPrefix = process.env.SSM_PREFIX;
+  const processedEmailTable = process.env.PROCESSED_EMAILS_TABLE;
+  const appSecretsPrefix = process.env.APP_SECRETS_SSM_PREFIX;
+  const gmailConnectionsTable = process.env.GMAIL_CONNECTIONS_TABLE;
+  const gmailConnectionsStatusIndex = process.env.GMAIL_CONNECTIONS_STATUS_INDEX;
+  const gmailTokenKmsKeyId = process.env.GMAIL_TOKEN_KMS_KEY_ID;
 
-  if (!dynamoDbTable) {
-    throw new Error("Missing required env var: DYNAMODB_TABLE");
+  if (!processedEmailTable) {
+    throw new Error("Missing required env var: PROCESSED_EMAILS_TABLE");
   }
 
-  if (!ssmPrefix) {
-    throw new Error("Missing required env var: SSM_PREFIX");
+  if (!appSecretsPrefix) {
+    throw new Error("Missing required env var: APP_SECRETS_SSM_PREFIX");
   }
 
-  return { dynamoDbTable, ssmPrefix };
+  if (!gmailConnectionsTable) {
+    throw new Error("Missing required env var: GMAIL_CONNECTIONS_TABLE");
+  }
+
+  if (!gmailConnectionsStatusIndex) {
+    throw new Error("Missing required env var: GMAIL_CONNECTIONS_STATUS_INDEX");
+  }
+
+  if (!gmailTokenKmsKeyId) {
+    throw new Error("Missing required env var: GMAIL_TOKEN_KMS_KEY_ID");
+  }
+
+  return {
+    processedEmailTable,
+    appSecretsPrefix,
+    gmailConnectionsTable,
+    gmailConnectionsStatusIndex,
+    gmailTokenKmsKeyId,
+  };
 }
 
 let parameterStore: ParameterStoreService | null = null;
 
 function getParameterStore(config: AppConfig): ParameterStoreService {
   if (!parameterStore) {
-    parameterStore = new ParameterStoreService(ssm, config.ssmPrefix);
+    parameterStore = new ParameterStoreService(ssm, config.appSecretsPrefix);
   }
 
   return parameterStore;
+}
+
+function getScheduledHandlerRefreshToken(): never {
+  throw new Error(
+    "Scheduled handler Gmail connection resolution is not implemented. Use DynamoDbGmailConnectionRepository and KmsGmailTokenEncryptionService from a user-aware flow.",
+  );
 }
 
 export async function processInbox(
@@ -91,13 +118,21 @@ export async function processInbox(
 export async function handler(_event: ScheduledEvent): Promise<void> {
   const config = getConfig();
   const params = await getParameterStore(config).loadParams();
-  const gmailService = new GmailMessageService(buildGmailClient(params));
+  const gmailService = new GmailMessageService(
+    buildGmailClient(
+      {
+        clientId: params.gmailOAuthClientId,
+        clientSecret: params.gmailOAuthClientSecret,
+      },
+      getScheduledHandlerRefreshToken(),
+    ),
+  );
   const translationService = new AnthropicTranslationService(
     new Anthropic({ apiKey: params.anthropicApiKey }),
   );
   const processedEmailService = new DynamoDbProcessedEmailService(
     ddb,
-    config.dynamoDbTable,
+    config.processedEmailTable,
   );
 
   await processInbox(gmailService, translationService, processedEmailService);

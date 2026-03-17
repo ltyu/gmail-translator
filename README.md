@@ -10,11 +10,11 @@ An AWS Lambda runs every 5 minutes, checks for new emails, translates them, and 
 
 ```
 EventBridge (every 5 min) → Lambda (Node.js 20 / TypeScript)
-                              ├── SSM Parameter Store (secrets)
+                              ├── SSM Parameter Store (app secrets)
                               ├── Gmail API (fetch new emails)
                               ├── Claude API (translate EN → ZH-CN)
                               ├── Gmail API (reply with translation)
-                              └── DynamoDB (track processed emails)
+                              └── DynamoDB (processed emails + per-user Gmail connections)
 ```
 
 Each translated reply looks like:
@@ -82,7 +82,7 @@ SAM will prompt you for:
 | `GmailClientIdParam` | Your Google OAuth2 client ID |
 | `GmailClientSecretParam` | Your Google OAuth2 client secret |
 
-All secrets are stored in AWS SSM Parameter Store.
+App-level secrets are stored in AWS SSM Parameter Store. Per-user Gmail refresh tokens should be encrypted with AWS KMS and stored in DynamoDB.
 
 ### 4. Verify
 
@@ -107,11 +107,14 @@ src/
   utils/buildGmailClient.ts            # Gmail client construction
   utils/emailParser.ts                # Gmail payload parsing helpers
   utils/replyComposer.ts              # Reply message formatting
+  services/dynamoDbGmailConnectionRepository.ts
   services/dynamoDbProcessedEmailService.ts
   services/gmailMessageService.ts
+  services/kmsGmailTokenEncryptionService.ts
   services/parameterStore.ts
   services/translatorService.ts
   handler.ts                          # AWS Lambda entrypoint
+docs/gmail-connection-contracts.md    # User-context and storage contracts
 test/                                 # Vitest unit tests
 ```
 
