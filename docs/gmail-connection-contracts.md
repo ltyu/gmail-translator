@@ -7,12 +7,16 @@
 - `GMAIL_CONNECTIONS_TABLE`: DynamoDB table for per-user Gmail connections.
 - `GMAIL_CONNECTIONS_STATUS_INDEX`: GSI that uses `gsi1pk` / `gsi1sk` for status queries.
 - `GMAIL_TOKEN_KMS_KEY_ID`: KMS key or alias used to encrypt Gmail refresh tokens before persistence.
+- `GMAIL_CONNECTION_SUCCESS_REDIRECT_URL`: future OAuth callback success redirect target.
+- `GMAIL_CONNECTION_FAILURE_REDIRECT_URL`: future OAuth callback failure redirect target.
+- `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect` are scaffolded in SAM as HttpApi routes for later handler implementation.
 
 ## App secrets vs user connection data
 
 - `ParameterStoreService` now loads only app-wide secrets: Anthropic API key, Gmail OAuth client ID, Gmail OAuth client secret.
 - Per-user Gmail refresh tokens must be encrypted with KMS and stored only in `GMAIL_CONNECTIONS_TABLE`.
 - `buildGmailClient` now requires app OAuth credentials plus a user-scoped refresh token supplied by caller code.
+- The scheduled worker still uses the legacy `gmail-refresh-token` SSM parameter until `LEY-8` removes the single-account path.
 
 ## Request and auth boundary for later issues
 
