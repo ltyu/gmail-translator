@@ -13,10 +13,6 @@ Parameters:
     Type: String
     Description: Anthropic API key for Claude
     NoEcho: true
-  GmailRefreshTokenParam:
-    Type: String
-    Description: Legacy single-account Gmail OAuth2 refresh token kept until LEY-8 migrates the worker to per-user connections
-    NoEcho: true
   GmailClientIdParam:
     Type: String
     Description: Gmail OAuth2 client ID
@@ -129,13 +125,6 @@ Resources:
       Name: !Sub ${AppSecretsSsmPrefixParam}/anthropic-api-key
       Type: String
       Value: !Ref AnthropicApiKeyParam
-
-  GmailRefreshToken:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub ${AppSecretsSsmPrefixParam}/gmail-refresh-token
-      Type: String
-      Value: !Ref GmailRefreshTokenParam
 
   GmailClientId:
     Type: AWS::SSM::Parameter
