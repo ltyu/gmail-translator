@@ -114,6 +114,7 @@ export interface CreateOAuthStateInput {
 
 export interface OAuthStateRepository {
   create(input: CreateOAuthStateInput): Promise<void>;
+  consume(state: string): Promise<OAuthStateRecord | null>;
 }
 
 export interface InboxMessageSummary {

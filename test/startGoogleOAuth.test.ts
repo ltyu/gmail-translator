@@ -18,7 +18,7 @@ describe("startGoogleOAuth", () => {
     const handler = createStartGoogleOAuthHandler({
       parameterStore: { loadParams: vi.fn() } as any,
       authProvider: { getAuthenticatedUser: vi.fn().mockResolvedValue(null) },
-      oauthStateRepository: { create: vi.fn() },
+      oauthStateRepository: { create: vi.fn(), consume: vi.fn() },
     });
 
     const response = await handler({ headers: {} } as any);
@@ -38,7 +38,7 @@ describe("startGoogleOAuth", () => {
         }),
       } as any,
       authProvider: { getAuthenticatedUser: vi.fn().mockResolvedValue({ userId: "user-123" }) },
-      oauthStateRepository: { create },
+      oauthStateRepository: { create, consume: vi.fn() },
       createState: () => "state-123",
       getNow: () => new Date("2026-03-17T10:00:00.000Z"),
     });
