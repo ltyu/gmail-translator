@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractBody, getHeader } from "../src/utils/emailParser.js";
+import { extractBody, getHeader } from "./emailParser.js";
 
 function encode(value: string): string {
   return Buffer.from(value, "utf-8").toString("base64url");

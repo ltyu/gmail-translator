@@ -56,10 +56,10 @@ Repository guidance for coding agents working in `gmail-translator`.
 
 ## Running A Single Test
 
-- Single test file once: `npm run test:run -- test/processInbox.test.ts`
+- Single test file once: `npm run test:run -- src/handler.test.ts`
 - Single test by name once: `npm run test:run -- -t "translates, replies, and marks processed"`
-- Direct Vitest file run: `npx vitest run test/processInbox.test.ts`
-- Direct Vitest file + name: `npx vitest run test/processInbox.test.ts -t "translates, replies, and marks processed"`
+- Direct Vitest file run: `npx vitest run src/handler.test.ts`
+- Direct Vitest file + name: `npx vitest run src/handler.test.ts -t "translates, replies, and marks processed"`
 - For local watch mode on one file, pass the path to `npm test -- <path>` or run `npx vitest <path>`.
 
 ## Secret Scanning
@@ -79,7 +79,7 @@ Repository guidance for coding agents working in `gmail-translator`.
 ## Architecture Patterns
 
 - Keep `src/handler.ts` as the composition root.
-- Keep provider-specific behavior in `src/services/`.
+- Keep provider-specific behavior in `src/services/` and persistence adapters in `src/repositories/`.
 - Keep pure helpers in `src/utils/`.
 - Keep orchestration logic in testable functions like `processInbox`.
 - Preserve dependency injection patterns that make units easy to mock.

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { DynamoDbOAuthStateRepository } from "../src/services/dynamoDbOAuthStateRepository.js";
+import { DynamoDbOAuthStateRepository } from "./dynamoDbOAuthStateRepository.js";
 
 describe("DynamoDbOAuthStateRepository", () => {
   it("stores oauth state with ttl", async () => {

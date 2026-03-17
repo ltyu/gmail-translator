@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createGoogleOAuthCallbackHandler } from "../src/handlers/googleOAuthCallback.js";
+import { createGoogleOAuthCallbackHandler } from "./googleOAuthCallback.js";
 
 describe("googleOAuthCallback", () => {
   const originalEnv = process.env;

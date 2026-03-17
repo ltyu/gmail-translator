@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { AnthropicTranslationService } from "../src/services/translatorService.js";
+import { AnthropicTranslationService } from "./translatorService.js";
 
 describe("AnthropicTranslationService", () => {
   it("returns translated text from the first content block", async () => {

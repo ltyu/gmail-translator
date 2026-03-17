@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { processActiveConnections, processInbox } from "../src/handler.js";
+import { processActiveConnections, processInbox } from "./handler.js";
 import {
   EmailMessage,
   GmailConnectionRepository,
@@ -7,7 +7,7 @@ import {
   GmailService,
   ProcessedEmailRepository,
   TranslationService,
-} from "../src/types.js";
+} from "./types.js";
 
 describe("EmailTranslationJob", () => {
   const gmailService: GmailService = {

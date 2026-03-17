@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { DynamoDbGmailConnectionRepository } from "../src/services/dynamoDbGmailConnectionRepository.js";
+import { DynamoDbGmailConnectionRepository } from "./dynamoDbGmailConnectionRepository.js";
 
 describe("DynamoDbGmailConnectionRepository", () => {
   it("upserts the primary connection with a lean schema", async () => {

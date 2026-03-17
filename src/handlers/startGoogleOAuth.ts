@@ -4,7 +4,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SSMClient } from "@aws-sdk/client-ssm";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { HeaderAuthenticatedAppUserProvider } from "../services/headerAuthenticatedAppUserProvider.js";
-import { DynamoDbOAuthStateRepository } from "../services/dynamoDbOAuthStateRepository.js";
+import { DynamoDbOAuthStateRepository } from "../repositories/dynamoDbOAuthStateRepository.js";
 import { ParameterStoreService } from "../services/parameterStore.js";
 import { AuthenticatedAppUserProvider, OAuthStateRepository } from "../types.js";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { DynamoDbProcessedEmailRepository } from "../src/services/dynamoDbProcessedEmailRepository.js";
+import { DynamoDbProcessedEmailRepository } from "./dynamoDbProcessedEmailRepository.js";
 
 describe("DynamoDbProcessedEmailRepository", () => {
   it("returns whether an email was processed", async () => {

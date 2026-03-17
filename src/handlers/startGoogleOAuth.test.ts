@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { createStartGoogleOAuthHandler } from "../src/handlers/startGoogleOAuth.js";
+import { createStartGoogleOAuthHandler } from "./startGoogleOAuth.js";
 
 describe("startGoogleOAuth", () => {
   const originalEnv = process.env;

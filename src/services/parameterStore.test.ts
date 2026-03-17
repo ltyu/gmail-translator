@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ParameterStoreService } from "../src/services/parameterStore.js";
+import { ParameterStoreService } from "./parameterStore.js";
 
 describe("ParameterStoreService", () => {
   it("loads all parameters and caches subsequent reads", async () => {

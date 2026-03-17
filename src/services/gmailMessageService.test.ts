@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { GmailMessageService } from "../src/services/gmailMessageService.js";
+import { GmailMessageService } from "./gmailMessageService.js";
 
 function encode(value: string): string {
   return Buffer.from(value, "utf-8").toString("base64url");

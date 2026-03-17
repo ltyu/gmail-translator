@@ -4,8 +4,8 @@ import { KMSClient } from "@aws-sdk/client-kms";
 import { SSMClient } from "@aws-sdk/client-ssm";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { google } from "googleapis";
-import { DynamoDbGmailConnectionRepository } from "../services/dynamoDbGmailConnectionRepository.js";
-import { DynamoDbOAuthStateRepository } from "../services/dynamoDbOAuthStateRepository.js";
+import { DynamoDbGmailConnectionRepository } from "../repositories/dynamoDbGmailConnectionRepository.js";
+import { DynamoDbOAuthStateRepository } from "../repositories/dynamoDbOAuthStateRepository.js";
 import { KmsGmailTokenEncryptionService } from "../services/kmsGmailTokenEncryptionService.js";
 import { ParameterStoreService } from "../services/parameterStore.js";
 import {

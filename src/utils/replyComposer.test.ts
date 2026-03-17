@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRawReply, buildReplyBody } from "../src/utils/replyComposer.js";
+import { buildRawReply, buildReplyBody } from "./replyComposer.js";
 
 describe("replyComposer", () => {
   it("builds the visible reply body", () => {

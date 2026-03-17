@@ -124,9 +124,9 @@ src/
   utils/buildGmailClient.ts            # Gmail client construction
   utils/emailParser.ts                # Gmail payload parsing helpers
   utils/replyComposer.ts              # Reply message formatting
-  services/dynamoDbGmailConnectionRepository.ts
-  services/dynamoDbOAuthStateRepository.ts
-  services/dynamoDbProcessedEmailRepository.ts
+  repositories/dynamoDbGmailConnectionRepository.ts
+  repositories/dynamoDbOAuthStateRepository.ts
+  repositories/dynamoDbProcessedEmailRepository.ts
   services/headerAuthenticatedAppUserProvider.ts
   services/gmailMessageService.ts
   services/kmsGmailTokenEncryptionService.ts

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { KmsGmailTokenEncryptionService } from "../src/services/kmsGmailTokenEncryptionService.js";
+import { KmsGmailTokenEncryptionService } from "./kmsGmailTokenEncryptionService.js";
 
 describe("KmsGmailTokenEncryptionService", () => {
   it("encrypts refresh tokens with a user-scoped encryption context", async () => {
