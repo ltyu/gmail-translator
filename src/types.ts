@@ -4,6 +4,7 @@ export interface AppConfig {
   gmailConnectionsTable?: string;
   gmailConnectionsStatusIndex?: string;
   gmailTokenKmsKeyId?: string;
+  googleOAuthCallbackUrl?: string;
 }
 
 export interface AppSecrets {
@@ -93,6 +94,26 @@ export interface AuthenticatedAppUser {
 
 export interface AuthenticatedAppUserProvider<TRequestContext = unknown> {
   getAuthenticatedUser(context: TRequestContext): Promise<AuthenticatedAppUser | null>;
+}
+
+export interface OAuthStateRecord {
+  state: string;
+  userId: string;
+  redirectUri: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface CreateOAuthStateInput {
+  state: string;
+  userId: string;
+  redirectUri: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface OAuthStateRepository {
+  create(input: CreateOAuthStateInput): Promise<void>;
 }
 
 export interface InboxMessageSummary {
