@@ -102,7 +102,7 @@ SAM now provisions:
 - scaffolded HttpApi routes and Lambda functions for `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect`
 
 Important: the legacy single-account refresh token is still provisioned in SSM for the scheduled worker until `LEY-8` lands. Fresh environments should keep that parameter in place for now.
-The OAuth handler files are currently placeholders and are intended to be implemented by `LEY-11`, `LEY-9`, and `LEY-7`.
+The OAuth start and callback handlers are implemented in the stacked MVP work, while the disconnect handler remains a placeholder until `LEY-7`.
 
 ### 4. Verify
 

@@ -11,7 +11,7 @@
 - `GOOGLE_OAUTH_CALLBACK_URL`: callback URL registered with Google for the backend OAuth flow.
 - `GMAIL_CONNECTION_SUCCESS_REDIRECT_URL`: future OAuth callback success redirect target.
 - `GMAIL_CONNECTION_FAILURE_REDIRECT_URL`: future OAuth callback failure redirect target.
-- `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect` are scaffolded in SAM as HttpApi routes for later handler implementation.
+- `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect` are wired in SAM as HttpApi routes; disconnect remains placeholder-level until `LEY-7`.
 
 ## App secrets vs user connection data
 
@@ -25,6 +25,7 @@
 - Later request handlers should provide a stable internal `userId` through `AuthenticatedAppUserProvider`.
 - The repo does not assume Clerk, Auth0, Cognito, or any frontend SDK. Only the internal `userId` contract matters.
 - `LEY-11` currently resolves the signed-in user from the trusted `x-authenticated-user-id` request header via `HeaderAuthenticatedAppUserProvider`.
+- `LEY-9` consumes OAuth state records on callback so one-time `state` values cannot be reused.
 - OAuth callback code should call `GmailConnectionRepository.upsertPrimary()` for the MVP.
 - Worker code that needs to process many users should call `listActive()` and decrypt each stored token with the same `userId` and `connectionId` encryption context.
 

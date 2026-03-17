@@ -1,5 +1,5 @@
-import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { CreateOAuthStateInput, OAuthStateRepository } from "../types.js";
+import { DeleteCommand, DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { CreateOAuthStateInput, OAuthStateRecord, OAuthStateRepository } from "../types.js";
 
 interface OAuthStateItem {
   state: string;
@@ -40,5 +40,29 @@ export class DynamoDbOAuthStateRepository implements OAuthStateRepository {
         },
       }),
     );
+  }
+
+  async consume(state: string): Promise<OAuthStateRecord | null> {
+    const response = await this.ddb.send(
+      new DeleteCommand({
+        TableName: this.tableName,
+        Key: { state },
+        ReturnValues: "ALL_OLD",
+      }),
+    );
+
+    const item = response.Attributes as OAuthStateItem | undefined;
+
+    if (!item) {
+      return null;
+    }
+
+    return {
+      state: item.state,
+      userId: item.userId,
+      redirectUri: item.redirectUri,
+      createdAt: item.createdAt,
+      expiresAt: item.expiresAt,
+    };
   }
 }
