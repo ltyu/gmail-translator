@@ -16,13 +16,13 @@ import {
 } from "../types.js";
 
 interface GmailConnectionItem {
-  // Partition key for all Gmail connection records owned by one app user.
+  // Partition key set directly to the owning app user id.
   pk: string;
   // Sort key for the primary Gmail connection record.
   sk: string;
-  // Status-partitioned GSI key used to list active connections.
+  // Status value used as the GSI partition key.
   gsi1pk: string;
-  // GSI sort key used to order connections by last update time.
+  // Last update timestamp used as the GSI sort key.
   gsi1sk: string;
   // Current lifecycle state for worker eligibility.
   status: GmailConnectionStatus;
@@ -40,25 +40,21 @@ interface GmailConnectionItem {
 
 function buildKeys(userId: string): Pick<GmailConnectionItem, "pk" | "sk"> {
   return {
-    pk: `USER#${userId}`,
-    sk: `CONNECTION#${PRIMARY_GMAIL_CONNECTION_ID}`,
+    pk: userId,
+    sk: PRIMARY_GMAIL_CONNECTION_ID,
   };
 }
 
-function buildStatusKeys(status: GmailConnectionStatus, updatedAt: string, userId: string) {
+function buildStatusKeys(status: GmailConnectionStatus, updatedAt: string) {
   return {
-    gsi1pk: `STATUS#${status}`,
-    gsi1sk: `UPDATED_AT#${updatedAt}#USER#${userId}`,
+    gsi1pk: status,
+    gsi1sk: updatedAt,
   };
-}
-
-function parseUserId(pk: string): string {
-  return pk.replace(/^USER#/, "");
 }
 
 function fromItem(item: GmailConnectionItem): GmailConnectionRecord {
   return {
-    userId: parseUserId(item.pk),
+    userId: item.pk,
     connectionId: PRIMARY_GMAIL_CONNECTION_ID,
     status: item.status,
     googleSub: item.googleSub,
@@ -81,7 +77,7 @@ export class DynamoDbGmailConnectionRepository implements GmailConnectionReposit
     const status = input.status ?? "active";
     const item: GmailConnectionItem = {
       ...buildKeys(input.userId),
-      ...buildStatusKeys(status, input.occurredAt, input.userId),
+      ...buildStatusKeys(status, input.occurredAt),
       status,
       googleSub: input.googleSub,
       gmailAddress: input.gmailAddress,
@@ -119,7 +115,7 @@ export class DynamoDbGmailConnectionRepository implements GmailConnectionReposit
         IndexName: this.statusIndexName,
         KeyConditionExpression: "gsi1pk = :status",
         ExpressionAttributeValues: {
-          ":status": "STATUS#active",
+          ":status": "active",
         },
         Limit: limit,
       }),
@@ -138,7 +134,7 @@ export class DynamoDbGmailConnectionRepository implements GmailConnectionReposit
 
   async clearRefreshToken(input: ClearPrimaryGmailRefreshTokenInput): Promise<void> {
     const status = input.status ?? "revoked";
-    const statusKeys = buildStatusKeys(status, input.occurredAt, input.userId);
+    const statusKeys = buildStatusKeys(status, input.occurredAt);
 
     await this.ddb.send(
       new UpdateCommand({
@@ -180,7 +176,7 @@ export class DynamoDbGmailConnectionRepository implements GmailConnectionReposit
     status: Extract<GmailConnectionStatus, "revoked" | "error">,
     occurredAt: string,
   ): Promise<void> {
-    const statusKeys = buildStatusKeys(status, occurredAt, userId);
+    const statusKeys = buildStatusKeys(status, occurredAt);
 
     await this.ddb.send(
       new UpdateCommand({

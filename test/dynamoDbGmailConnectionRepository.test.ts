@@ -27,16 +27,16 @@ describe("DynamoDbGmailConnectionRepository", () => {
 
     const getCommand = send.mock.calls[0][0];
     expect(getCommand.input.Key).toEqual({
-      pk: "USER#user-123",
-      sk: "CONNECTION#primary",
+      pk: "user-123",
+      sk: "primary",
     });
 
     const putCommand = send.mock.calls[1][0];
     expect(putCommand.input.Item).toEqual({
-      pk: "USER#user-123",
-      sk: "CONNECTION#primary",
-      gsi1pk: "STATUS#active",
-      gsi1sk: "UPDATED_AT#2026-03-17T10:00:00.000Z#USER#user-123",
+      pk: "user-123",
+      sk: "primary",
+      gsi1pk: "active",
+      gsi1sk: "2026-03-17T10:00:00.000Z",
       status: "active",
       googleSub: "google-sub-123",
       gmailAddress: "person@example.com",
@@ -49,10 +49,10 @@ describe("DynamoDbGmailConnectionRepository", () => {
   it("loads the primary connection by user id", async () => {
     const send = vi.fn().mockResolvedValue({
       Item: {
-        pk: "USER#user-123",
-        sk: "CONNECTION#primary",
-        gsi1pk: "STATUS#active",
-        gsi1sk: "UPDATED_AT#2026-03-17T10:00:00.000Z#USER#user-123",
+        pk: "user-123",
+        sk: "primary",
+        gsi1pk: "active",
+        gsi1sk: "2026-03-17T10:00:00.000Z",
         status: "active",
         googleSub: "google-sub-123",
         gmailAddress: "person@example.com",
@@ -79,10 +79,10 @@ describe("DynamoDbGmailConnectionRepository", () => {
     const send = vi.fn().mockResolvedValue({
       Items: [
         {
-          pk: "USER#user-123",
-          sk: "CONNECTION#primary",
-          gsi1pk: "STATUS#active",
-          gsi1sk: "UPDATED_AT#2026-03-17T10:00:00.000Z#USER#user-123",
+          pk: "user-123",
+          sk: "primary",
+          gsi1pk: "active",
+          gsi1sk: "2026-03-17T10:00:00.000Z",
           status: "active",
           googleSub: "google-sub-123",
           createdAt: "2026-03-17T10:00:00.000Z",
@@ -110,7 +110,7 @@ describe("DynamoDbGmailConnectionRepository", () => {
     const command = send.mock.calls[0][0];
     expect(command.input.IndexName).toBe("status-index");
     expect(command.input.ExpressionAttributeValues).toEqual({
-      ":status": "STATUS#active",
+      ":status": "active",
     });
     expect(command.input.Limit).toBe(25);
   });
@@ -125,8 +125,8 @@ describe("DynamoDbGmailConnectionRepository", () => {
     expect(command.input.ConditionExpression).toBe("attribute_exists(pk) AND attribute_exists(sk)");
     expect(command.input.ExpressionAttributeValues).toMatchObject({
       ":status": "revoked",
-      ":gsi1pk": "STATUS#revoked",
-      ":gsi1sk": "UPDATED_AT#2026-03-17T12:30:00.000Z#USER#user-123",
+      ":gsi1pk": "revoked",
+      ":gsi1sk": "2026-03-17T12:30:00.000Z",
     });
   });
 
@@ -139,7 +139,7 @@ describe("DynamoDbGmailConnectionRepository", () => {
     const command = send.mock.calls[0][0];
     expect(command.input.ExpressionAttributeValues).toMatchObject({
       ":status": "error",
-      ":gsi1pk": "STATUS#error",
+      ":gsi1pk": "error",
     });
   });
 
@@ -157,7 +157,7 @@ describe("DynamoDbGmailConnectionRepository", () => {
     expect(command.input.ConditionExpression).toBe("attribute_exists(pk) AND attribute_exists(sk)");
     expect(command.input.ExpressionAttributeValues).toMatchObject({
       ":status": "revoked",
-      ":gsi1pk": "STATUS#revoked",
+      ":gsi1pk": "revoked",
       ":encryptedRefreshToken": null,
     });
   });
@@ -170,8 +170,8 @@ describe("DynamoDbGmailConnectionRepository", () => {
 
     const command = send.mock.calls[0][0];
     expect(command.input.Key).toEqual({
-      pk: "USER#user-123",
-      sk: "CONNECTION#primary",
+      pk: "user-123",
+      sk: "primary",
     });
   });
 });

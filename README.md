@@ -31,7 +31,7 @@ DynamoDB tracks which emails have been processed (with 30-day auto-cleanup via T
 
 ## Prerequisites
 
-1. **Google Cloud Project** — with Gmail API enabled and OAuth2 credentials (Desktop app type)
+1. **Google Cloud Project** — with Gmail API enabled and OAuth2 credentials
 2. **Anthropic API Key** — from [console.anthropic.com](https://console.anthropic.com)
 3. **AWS Account** — with AWS CLI configured (`aws configure`)
 4. **AWS SAM CLI** — [install guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
@@ -56,15 +56,22 @@ For secret scanning, install `gitleaks` locally and run:
 npm run secrets:scan
 ```
 
-### 2. Get a Gmail OAuth refresh token
+### 2. Current single-account bootstrap
 
-Create OAuth2 credentials in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (Desktop app type), then run:
+Until `LEY-8` migrates the scheduled worker to per-user Gmail connections, the deployed translator still needs one legacy Gmail refresh token in SSM. Create Desktop app OAuth2 credentials in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials), then run:
 
 ```bash
 npx tsx setup-gmail-token.ts <client_id> <client_secret>
 ```
 
 This opens a browser for Google consent and prints a refresh token. Save it for the next step.
+
+For the external-user OAuth MVP, the long-term direction is different:
+
+- use a Google OAuth **Web application** client for backend start/callback handlers
+- keep app-wide secrets in SSM under one configurable prefix
+- store per-user Gmail refresh tokens encrypted with KMS in DynamoDB
+- use configurable success/failure redirect URLs for callback responses
 
 ### 3. Deploy to AWS
 
@@ -78,11 +85,23 @@ SAM will prompt you for:
 | Parameter | Description |
 |---|---|
 | `AnthropicApiKeyParam` | Your Anthropic API key |
-| `GmailRefreshTokenParam` | The refresh token from step 2 |
+| `GmailRefreshTokenParam` | Legacy refresh token from step 2, required until the worker is migrated off the single-account path |
 | `GmailClientIdParam` | Your Google OAuth2 client ID |
 | `GmailClientSecretParam` | Your Google OAuth2 client secret |
+| `AppSecretsSsmPrefixParam` | SSM prefix for app-level secrets |
+| `GmailConnectionSuccessRedirectUrlParam` | Future OAuth success redirect URL |
+| `GmailConnectionFailureRedirectUrlParam` | Future OAuth failure redirect URL |
 
-App-level secrets are stored in AWS SSM Parameter Store. Per-user Gmail refresh tokens should be encrypted with AWS KMS and stored in DynamoDB.
+SAM now provisions:
+
+- `TranslatedEmailsTable` for processed-email dedupe
+- `GmailConnectionsTable` for per-user Gmail connections
+- `GmailRefreshTokenKey` for encrypting per-user refresh tokens
+- SSM parameters for app-level secrets under `AppSecretsSsmPrefixParam`
+- scaffolded HttpApi routes and Lambda functions for `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect`
+
+Important: the legacy single-account refresh token is still provisioned in SSM for the scheduled worker until `LEY-8` lands. Fresh environments should keep that parameter in place for now.
+The OAuth handler files are currently placeholders and are intended to be implemented by `LEY-11`, `LEY-9`, and `LEY-7`.
 
 ### 4. Verify
 
@@ -113,6 +132,9 @@ src/
   services/kmsGmailTokenEncryptionService.ts
   services/parameterStore.ts
   services/translatorService.ts
+  handlers/startGoogleOAuth.ts
+  handlers/googleOAuthCallback.ts
+  handlers/disconnectGoogleOAuth.ts
   handler.ts                          # AWS Lambda entrypoint
 docs/gmail-connection-contracts.md    # User-context and storage contracts
 test/                                 # Vitest unit tests

@@ -15,7 +15,7 @@ Parameters:
     NoEcho: true
   GmailRefreshTokenParam:
     Type: String
-    Description: Gmail OAuth2 refresh token
+    Description: Legacy single-account Gmail OAuth2 refresh token kept until LEY-8 migrates the worker to per-user connections
     NoEcho: true
   GmailClientIdParam:
     Type: String
@@ -25,6 +25,18 @@ Parameters:
     Type: String
     Description: Gmail OAuth2 client secret
     NoEcho: true
+  AppSecretsSsmPrefixParam:
+    Type: String
+    Description: SSM prefix for app-level secrets
+    Default: /gmail-translator
+  GmailConnectionSuccessRedirectUrlParam:
+    Type: String
+    Description: OAuth success redirect URL for future callback handlers
+    Default: https://example.com/settings/integrations/gmail/success
+  GmailConnectionFailureRedirectUrlParam:
+    Type: String
+    Description: OAuth failure redirect URL for future callback handlers
+    Default: https://example.com/settings/integrations/gmail/error
 
 Resources:
   TranslatedEmailsTable:
@@ -42,31 +54,81 @@ Resources:
         AttributeName: ttl
         Enabled: true
 
+  GmailConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: gmail-user-connections
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: gsi1sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: gsi1
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: gsi1sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  GmailRefreshTokenKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Encrypt per-user Gmail refresh tokens stored in DynamoDB
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowRootAccountAdministration
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: 'kms:*'
+            Resource: '*'
+
+  GmailRefreshTokenKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/gmail-translator-refresh-token
+      TargetKeyId: !Ref GmailRefreshTokenKey
+
   AnthropicApiKey:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /gmail-translator/anthropic-api-key
+      Name: !Sub ${AppSecretsSsmPrefixParam}/anthropic-api-key
       Type: String
       Value: !Ref AnthropicApiKeyParam
 
   GmailRefreshToken:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /gmail-translator/gmail-refresh-token
+      Name: !Sub ${AppSecretsSsmPrefixParam}/gmail-refresh-token
       Type: String
       Value: !Ref GmailRefreshTokenParam
 
   GmailClientId:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /gmail-translator/gmail-client-id
+      Name: !Sub ${AppSecretsSsmPrefixParam}/gmail-client-id
       Type: String
       Value: !Ref GmailClientIdParam
 
   GmailClientSecret:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /gmail-translator/gmail-client-secret
+      Name: !Sub ${AppSecretsSsmPrefixParam}/gmail-client-secret
       Type: String
       Value: !Ref GmailClientSecretParam
 
@@ -78,13 +140,31 @@ Resources:
       Handler: handler.handler
       Environment:
         Variables:
-          DYNAMODB_TABLE: !Ref TranslatedEmailsTable
-          SSM_PREFIX: /gmail-translator
+          PROCESSED_EMAILS_TABLE: !Ref TranslatedEmailsTable
+          APP_SECRETS_SSM_PREFIX: !Ref AppSecretsSsmPrefixParam
+          GMAIL_CONNECTIONS_TABLE: !Ref GmailConnectionsTable
+          GMAIL_CONNECTIONS_STATUS_INDEX: gsi1
+          GMAIL_TOKEN_KMS_KEY_ID: !Ref GmailRefreshTokenKey
+          GMAIL_CONNECTION_SUCCESS_REDIRECT_URL: !Ref GmailConnectionSuccessRedirectUrlParam
+          GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TranslatedEmailsTable
-        - SSMParameterReadPolicy:
-            ParameterName: gmail-translator/*
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GmailConnectionsTable
+        - Statement:
+            Effect: Allow
+            Action:
+              - ssm:GetParameter
+            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/*
+        - Statement:
+            Effect: Allow
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey
+              - kms:DescribeKey
+            Resource: !GetAtt GmailRefreshTokenKey.Arn
       Events:
         ScheduleEvent:
           Type: Schedule
@@ -102,7 +182,154 @@ Resources:
         External:
           - '@aws-sdk/*'
 
+  StartGoogleOAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: gmail-translator-start-google-oauth
+      CodeUri: ./
+      Handler: startGoogleOAuth.handler
+      Environment:
+        Variables:
+          APP_SECRETS_SSM_PREFIX: !Ref AppSecretsSsmPrefixParam
+          GMAIL_CONNECTIONS_TABLE: !Ref GmailConnectionsTable
+          GMAIL_CONNECTIONS_STATUS_INDEX: gsi1
+          GMAIL_TOKEN_KMS_KEY_ID: !Ref GmailRefreshTokenKey
+          GMAIL_CONNECTION_SUCCESS_REDIRECT_URL: !Ref GmailConnectionSuccessRedirectUrlParam
+          GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GmailConnectionsTable
+        - Statement:
+            Effect: Allow
+            Action:
+              - ssm:GetParameter
+            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/*
+        - Statement:
+            Effect: Allow
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey
+              - kms:DescribeKey
+            Resource: !GetAtt GmailRefreshTokenKey.Arn
+      Events:
+        StartGoogleOAuthApi:
+          Type: HttpApi
+          Properties:
+            Path: /auth/google/start
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/startGoogleOAuth.ts
+        External:
+          - '@aws-sdk/*'
+
+  GoogleOAuthCallbackFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: gmail-translator-google-oauth-callback
+      CodeUri: ./
+      Handler: googleOAuthCallback.handler
+      Environment:
+        Variables:
+          APP_SECRETS_SSM_PREFIX: !Ref AppSecretsSsmPrefixParam
+          GMAIL_CONNECTIONS_TABLE: !Ref GmailConnectionsTable
+          GMAIL_CONNECTIONS_STATUS_INDEX: gsi1
+          GMAIL_TOKEN_KMS_KEY_ID: !Ref GmailRefreshTokenKey
+          GMAIL_CONNECTION_SUCCESS_REDIRECT_URL: !Ref GmailConnectionSuccessRedirectUrlParam
+          GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GmailConnectionsTable
+        - Statement:
+            Effect: Allow
+            Action:
+              - ssm:GetParameter
+            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/*
+        - Statement:
+            Effect: Allow
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey
+              - kms:DescribeKey
+            Resource: !GetAtt GmailRefreshTokenKey.Arn
+      Events:
+        GoogleOAuthCallbackApi:
+          Type: HttpApi
+          Properties:
+            Path: /auth/google/callback
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/googleOAuthCallback.ts
+        External:
+          - '@aws-sdk/*'
+
+  DisconnectGoogleOAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: gmail-translator-disconnect-google-oauth
+      CodeUri: ./
+      Handler: disconnectGoogleOAuth.handler
+      Environment:
+        Variables:
+          APP_SECRETS_SSM_PREFIX: !Ref AppSecretsSsmPrefixParam
+          GMAIL_CONNECTIONS_TABLE: !Ref GmailConnectionsTable
+          GMAIL_CONNECTIONS_STATUS_INDEX: gsi1
+          GMAIL_TOKEN_KMS_KEY_ID: !Ref GmailRefreshTokenKey
+          GMAIL_CONNECTION_SUCCESS_REDIRECT_URL: !Ref GmailConnectionSuccessRedirectUrlParam
+          GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GmailConnectionsTable
+        - Statement:
+            Effect: Allow
+            Action:
+              - ssm:GetParameter
+            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/*
+        - Statement:
+            Effect: Allow
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey
+              - kms:DescribeKey
+            Resource: !GetAtt GmailRefreshTokenKey.Arn
+      Events:
+        DisconnectGoogleOAuthApi:
+          Type: HttpApi
+          Properties:
+            Path: /auth/google/disconnect
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/disconnectGoogleOAuth.ts
+        External:
+          - '@aws-sdk/*'
+
 Outputs:
   TranslatorFunctionArn:
     Description: Lambda function ARN
     Value: !GetAtt TranslatorFunction.Arn
+  GmailConnectionsTableName:
+    Description: DynamoDB table for per-user Gmail connections
+    Value: !Ref GmailConnectionsTable
+  GmailRefreshTokenKeyArn:
+    Description: KMS key used to encrypt Gmail refresh tokens
+    Value: !GetAtt GmailRefreshTokenKey.Arn
