@@ -3,14 +3,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SSMClient } from "@aws-sdk/client-ssm";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { DynamoDbProcessedEmailService } from "./services/dynamoDbProcessedEmailService.js";
+import { DynamoDbProcessedEmailRepository } from "./services/dynamoDbProcessedEmailRepository.js";
 import { GmailMessageService } from "./services/gmailMessageService.js";
 import { ParameterStoreService } from "./services/parameterStore.js";
 import { AnthropicTranslationService } from "./services/translatorService.js";
 import {
   AppConfig,
   GmailService,
-  ProcessedEmailService,
+  ProcessedEmailRepository,
   TranslationService,
 } from "./types.js";
 import { buildGmailClient } from "./utils/buildGmailClient.js";
@@ -19,8 +19,8 @@ const ssm = new SSMClient({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 function getConfig(): AppConfig {
-  const processedEmailTable = process.env.PROCESSED_EMAILS_TABLE;
-  const appSecretsPrefix = process.env.APP_SECRETS_SSM_PREFIX;
+  const processedEmailTable = process.env.PROCESSED_EMAILS_TABLE ?? process.env.DYNAMODB_TABLE;
+  const appSecretsPrefix = process.env.APP_SECRETS_SSM_PREFIX ?? process.env.SSM_PREFIX;
   const gmailConnectionsTable = process.env.GMAIL_CONNECTIONS_TABLE;
   const gmailConnectionsStatusIndex = process.env.GMAIL_CONNECTIONS_STATUS_INDEX;
   const gmailTokenKmsKeyId = process.env.GMAIL_TOKEN_KMS_KEY_ID;
@@ -31,18 +31,6 @@ function getConfig(): AppConfig {
 
   if (!appSecretsPrefix) {
     throw new Error("Missing required env var: APP_SECRETS_SSM_PREFIX");
-  }
-
-  if (!gmailConnectionsTable) {
-    throw new Error("Missing required env var: GMAIL_CONNECTIONS_TABLE");
-  }
-
-  if (!gmailConnectionsStatusIndex) {
-    throw new Error("Missing required env var: GMAIL_CONNECTIONS_STATUS_INDEX");
-  }
-
-  if (!gmailTokenKmsKeyId) {
-    throw new Error("Missing required env var: GMAIL_TOKEN_KMS_KEY_ID");
   }
 
   return {
@@ -64,16 +52,22 @@ function getParameterStore(config: AppConfig): ParameterStoreService {
   return parameterStore;
 }
 
-function getScheduledHandlerRefreshToken(): never {
+function getScheduledHandlerRefreshToken(params: { legacyGmailRefreshToken?: string }): string {
+  // TODO(LEY-8): Remove this legacy fallback once the scheduled worker loads
+  // per-user Gmail connections from DynamoDB instead of a single SSM refresh token.
+  if (params.legacyGmailRefreshToken) {
+    return params.legacyGmailRefreshToken;
+  }
+
   throw new Error(
-    "Scheduled handler Gmail connection resolution is not implemented. Use DynamoDbGmailConnectionRepository and KmsGmailTokenEncryptionService from a user-aware flow.",
+    "Missing legacy Gmail refresh token for scheduled handler. Keep /gmail-refresh-token configured until the worker is migrated to load per-user connections.",
   );
 }
 
 export async function processInbox(
   gmailService: GmailService,
   translationService: TranslationService,
-  processedEmailService: ProcessedEmailService,
+  processedEmailRepository: ProcessedEmailRepository,
   logger: Pick<Console, "log"> = console,
 ): Promise<void> {
   const myEmail = await gmailService.getAuthenticatedEmail();
@@ -83,7 +77,7 @@ export async function processInbox(
   logger.log(`Found ${messages.length} recent messages`);
 
   for (const message of messages) {
-    if (await processedEmailService.isProcessed(message.id)) {
+    if (await processedEmailRepository.isProcessed(message.id)) {
       logger.log(`Skipping already processed: ${message.id}`);
       continue;
     }
@@ -93,7 +87,7 @@ export async function processInbox(
 
     if (!fullMessage.bodyText.trim()) {
       logger.log(`Empty body, skipping: ${message.id}`);
-      await processedEmailService.markProcessed(message.id);
+      await processedEmailRepository.markProcessed(message.id);
       continue;
     }
 
@@ -109,7 +103,7 @@ export async function processInbox(
     });
 
     logger.log(`Replied with translation for: "${fullMessage.subject}"`);
-    await processedEmailService.markProcessed(message.id);
+    await processedEmailRepository.markProcessed(message.id);
   }
 
   logger.log("Done");
@@ -124,16 +118,16 @@ export async function handler(_event: ScheduledEvent): Promise<void> {
         clientId: params.gmailOAuthClientId,
         clientSecret: params.gmailOAuthClientSecret,
       },
-      getScheduledHandlerRefreshToken(),
+      getScheduledHandlerRefreshToken(params),
     ),
   );
   const translationService = new AnthropicTranslationService(
     new Anthropic({ apiKey: params.anthropicApiKey }),
   );
-  const processedEmailService = new DynamoDbProcessedEmailService(
+  const processedEmailRepository = new DynamoDbProcessedEmailRepository(
     ddb,
     config.processedEmailTable,
   );
 
-  await processInbox(gmailService, translationService, processedEmailService);
+  await processInbox(gmailService, translationService, processedEmailRepository);
 }

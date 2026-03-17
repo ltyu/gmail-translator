@@ -108,7 +108,7 @@ src/
   utils/emailParser.ts                # Gmail payload parsing helpers
   utils/replyComposer.ts              # Reply message formatting
   services/dynamoDbGmailConnectionRepository.ts
-  services/dynamoDbProcessedEmailService.ts
+  services/dynamoDbProcessedEmailRepository.ts
   services/gmailMessageService.ts
   services/kmsGmailTokenEncryptionService.ts
   services/parameterStore.ts

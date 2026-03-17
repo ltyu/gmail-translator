@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { DynamoDbProcessedEmailService } from "../src/services/dynamoDbProcessedEmailService.js";
+import { DynamoDbProcessedEmailRepository } from "../src/services/dynamoDbProcessedEmailRepository.js";
 
-describe("DynamoDbProcessedEmailService", () => {
+describe("DynamoDbProcessedEmailRepository", () => {
   it("returns whether an email was processed", async () => {
     const send = vi.fn().mockResolvedValueOnce({}).mockResolvedValueOnce({ Item: { email_id: "abc" } });
-    const service = new DynamoDbProcessedEmailService({ send } as any, "emails");
+    const repository = new DynamoDbProcessedEmailRepository({ send } as any, "emails");
 
-    await expect(service.isProcessed("a")).resolves.toBe(false);
-    await expect(service.isProcessed("b")).resolves.toBe(true);
+    await expect(repository.isProcessed("a")).resolves.toBe(false);
+    await expect(repository.isProcessed("b")).resolves.toBe(true);
   });
 
   it("writes ttl and processed timestamp", async () => {
@@ -15,9 +15,9 @@ describe("DynamoDbProcessedEmailService", () => {
     vi.setSystemTime(new Date("2026-03-14T12:00:00.000Z"));
 
     const send = vi.fn().mockResolvedValue({});
-    const service = new DynamoDbProcessedEmailService({ send } as any, "emails");
+    const repository = new DynamoDbProcessedEmailRepository({ send } as any, "emails");
 
-    await service.markProcessed("abc");
+    await repository.markProcessed("abc");
 
     const command = send.mock.calls[0][0];
     expect(command.input.TableName).toBe("emails");

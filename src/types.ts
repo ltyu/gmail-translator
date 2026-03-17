@@ -1,15 +1,16 @@
 export interface AppConfig {
   processedEmailTable: string;
   appSecretsPrefix: string;
-  gmailConnectionsTable: string;
-  gmailConnectionsStatusIndex: string;
-  gmailTokenKmsKeyId: string;
+  gmailConnectionsTable?: string;
+  gmailConnectionsStatusIndex?: string;
+  gmailTokenKmsKeyId?: string;
 }
 
 export interface AppSecrets {
   anthropicApiKey: string;
   gmailOAuthClientId: string;
   gmailOAuthClientSecret: string;
+  legacyGmailRefreshToken?: string;
 }
 
 export interface GmailOAuthAppCredentials {
@@ -127,7 +128,7 @@ export interface TranslationService {
   translateText(text: string): Promise<string>;
 }
 
-export interface ProcessedEmailService {
+export interface ProcessedEmailRepository {
   isProcessed(emailId: string): Promise<boolean>;
   markProcessed(emailId: string): Promise<void>;
 }

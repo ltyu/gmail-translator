@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { processInbox } from "../src/handler.js";
-import { EmailMessage, GmailService, ProcessedEmailService, TranslationService } from "../src/types.js";
+import { EmailMessage, GmailService, ProcessedEmailRepository, TranslationService } from "../src/types.js";
 
 describe("EmailTranslationJob", () => {
   const gmailService: GmailService = {
@@ -12,7 +12,7 @@ describe("EmailTranslationJob", () => {
   const translationService: TranslationService = {
     translateText: vi.fn(),
   };
-  const processedEmailService: ProcessedEmailService = {
+  const processedEmailRepository: ProcessedEmailRepository = {
     isProcessed: vi.fn(),
     markProcessed: vi.fn(),
   };
@@ -26,33 +26,33 @@ describe("EmailTranslationJob", () => {
 
   it("skips already processed messages", async () => {
     vi.mocked(gmailService.listRecentInboxMessages).mockResolvedValue([{ id: "1" }]);
-    vi.mocked(processedEmailService.isProcessed).mockResolvedValue(true);
+    vi.mocked(processedEmailRepository.isProcessed).mockResolvedValue(true);
 
-    await processInbox(gmailService, translationService, processedEmailService, logger);
+    await processInbox(gmailService, translationService, processedEmailRepository, logger);
 
     expect(gmailService.getMessage).not.toHaveBeenCalled();
-    expect(processedEmailService.markProcessed).not.toHaveBeenCalled();
+    expect(processedEmailRepository.markProcessed).not.toHaveBeenCalled();
   });
 
   it("marks empty-body messages as processed without translating", async () => {
     vi.mocked(gmailService.listRecentInboxMessages).mockResolvedValue([{ id: "1" }]);
-    vi.mocked(processedEmailService.isProcessed).mockResolvedValue(false);
+    vi.mocked(processedEmailRepository.isProcessed).mockResolvedValue(false);
     vi.mocked(gmailService.getMessage).mockResolvedValue(makeMessage({ bodyText: "   " }));
 
-    await processInbox(gmailService, translationService, processedEmailService, logger);
+    await processInbox(gmailService, translationService, processedEmailRepository, logger);
 
     expect(translationService.translateText).not.toHaveBeenCalled();
     expect(gmailService.sendReply).not.toHaveBeenCalled();
-    expect(processedEmailService.markProcessed).toHaveBeenCalledWith("1");
+    expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith("1");
   });
 
   it("translates, replies, and marks processed", async () => {
     vi.mocked(gmailService.listRecentInboxMessages).mockResolvedValue([{ id: "1" }]);
-    vi.mocked(processedEmailService.isProcessed).mockResolvedValue(false);
+    vi.mocked(processedEmailRepository.isProcessed).mockResolvedValue(false);
     vi.mocked(gmailService.getMessage).mockResolvedValue(makeMessage());
     vi.mocked(translationService.translateText).mockResolvedValue("translated");
 
-    await processInbox(gmailService, translationService, processedEmailService, logger);
+    await processInbox(gmailService, translationService, processedEmailRepository, logger);
 
     expect(translationService.translateText).toHaveBeenCalledWith("Body text");
     expect(gmailService.sendReply).toHaveBeenCalledWith({
@@ -63,7 +63,7 @@ describe("EmailTranslationJob", () => {
       translation: "translated",
       originalText: "Body text",
     });
-    expect(processedEmailService.markProcessed).toHaveBeenCalledWith("1");
+    expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith("1");
   });
 });
 

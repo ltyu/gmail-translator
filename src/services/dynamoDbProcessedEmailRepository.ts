@@ -1,7 +1,7 @@
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { ProcessedEmailService } from "../types.js";
+import { ProcessedEmailRepository } from "../types.js";
 
-export class DynamoDbProcessedEmailService implements ProcessedEmailService {
+export class DynamoDbProcessedEmailRepository implements ProcessedEmailRepository {
   constructor(
     private readonly ddb: DynamoDBDocumentClient,
     private readonly tableName: string,
