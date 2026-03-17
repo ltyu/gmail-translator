@@ -8,7 +8,7 @@
 - `GMAIL_CONNECTIONS_STATUS_INDEX`: GSI that uses `gsi1pk` / `gsi1sk` for status queries.
 - `GMAIL_TOKEN_KMS_KEY_ID`: KMS key or alias used to encrypt Gmail refresh tokens before persistence.
 - `GOOGLE_OAUTH_STATES_TABLE`: DynamoDB table for short-lived OAuth state records.
-- `GOOGLE_OAUTH_CALLBACK_URL`: callback URL registered with Google for the backend OAuth flow.
+- `GOOGLE_OAUTH_CALLBACK_URL`: callback URL derived from the deployed HttpApi for the backend OAuth flow.
 - `GMAIL_CONNECTION_SUCCESS_REDIRECT_URL`: future OAuth callback success redirect target.
 - `GMAIL_CONNECTION_FAILURE_REDIRECT_URL`: future OAuth callback failure redirect target.
 - `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect` are wired in SAM as HttpApi routes; disconnect remains placeholder-level until `LEY-7`.

@@ -1,13 +1,13 @@
 version = 0.1
 
 [default.deploy.parameters]
-stack_name = "gmail-translator"
+stack_name = "gmail-translator-staging"
 resolve_s3 = true
-s3_prefix = "gmail-translator"
-region = "us-east-1"
+s3_prefix = "gmail-translator-staging"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 image_repositories = []
+parameter_overrides = "AppSecretsSsmPrefixParam=\"/gmail-translator-staging\" ResourceNamePrefixParam=\"gmail-translator-staging\" GmailConnectionSuccessRedirectUrlParam=\"https://example.com/settings/integrations/gmail/success\" GmailConnectionFailureRedirectUrlParam=\"https://example.com/settings/integrations/gmail/error\""
 
 [default.global.parameters]
 region = "us-east-1"

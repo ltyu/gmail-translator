@@ -11,7 +11,7 @@
     "secrets:scan": "gitleaks git --redact --no-banner",
     "secrets:scan:changes": "gitleaks git --pre-commit --redact --no-banner",
     "secrets:scan:staged": "gitleaks git --staged --redact --no-banner",
-    "prepare": "husky"
+    "prepare": "node --input-type=module -e \"try { const { default: husky } = await import('husky'); husky(); } catch (error) { if (error && error.code !== 'ERR_MODULE_NOT_FOUND' && error.code !== 'MODULE_NOT_FOUND') throw error; }\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -19,13 +19,13 @@
     "@aws-sdk/client-kms": "^3.1010.0",
     "@aws-sdk/client-ssm": "^3.700.0",
     "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "esbuild": "^0.24.2",
     "googleapis": "^144.0.0",
     "html-to-text": "^9.0.5"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.145",
     "@types/html-to-text": "^9.0.4",
-    "esbuild": "^0.24.0",
     "husky": "^9.1.7",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
