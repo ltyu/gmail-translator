@@ -14,14 +14,19 @@ export class ParameterStoreService {
       return this.cachedParams;
     }
 
-    const [anthropicApiKey, refreshToken, clientId, clientSecret] = await Promise.all([
+    const [anthropicApiKey, gmailOAuthClientId, gmailOAuthClientSecret, legacyGmailRefreshToken] = await Promise.all([
       this.getParam("anthropic-api-key"),
-      this.getParam("gmail-refresh-token"),
       this.getParam("gmail-client-id"),
       this.getParam("gmail-client-secret"),
+      this.getOptionalParam("gmail-refresh-token"),
     ]);
 
-    this.cachedParams = { anthropicApiKey, refreshToken, clientId, clientSecret };
+    this.cachedParams = {
+      anthropicApiKey,
+      gmailOAuthClientId,
+      gmailOAuthClientSecret,
+      legacyGmailRefreshToken: legacyGmailRefreshToken ?? undefined,
+    };
     return this.cachedParams;
   }
 
@@ -40,5 +45,17 @@ export class ParameterStoreService {
     }
 
     return value;
+  }
+
+  private async getOptionalParam(name: string): Promise<string | null> {
+    try {
+      return await this.getParam(name);
+    } catch (error) {
+      if (error instanceof Error && error.name === "ParameterNotFound") {
+        return null;
+      }
+
+      throw error;
+    }
   }
 }
