@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "gitleaks is required for pre-commit secret scanning."
+  echo "Install it from https://github.com/gitleaks/gitleaks/releases"
+  exit 1
+fi
+
+npm run secrets:scan:staged
