@@ -18,18 +18,19 @@
 
 - Later request handlers should provide a stable internal `userId` through `AuthenticatedAppUserProvider`.
 - The repo does not assume Clerk, Auth0, Cognito, or any frontend SDK. Only the internal `userId` contract matters.
-- OAuth callback code should call `GmailConnectionRepository.upsert` with `connectionId = "primary"` for the MVP.
-- Worker code that needs to process many users should call `listActiveConnections()` and decrypt each stored token with the same `userId` and `connectionId` encryption context.
+- OAuth callback code should call `GmailConnectionRepository.upsertPrimary()` for the MVP.
+- Worker code that needs to process many users should call `listActive()` and decrypt each stored token with the same `userId` and `connectionId` encryption context.
 
 ## Data model notes
 
 - Primary key design is `pk = USER#<userId>` and `sk = CONNECTION#<connectionId>`.
 - The MVP uses one connection per user and defaults `connectionId` to `primary`.
 - This allows a future multi-connection rollout to add non-primary sort keys without changing the partition model.
-- Status index records use `gsi1pk = STATUS#<status>` and `gsi1sk = UPDATED_AT#<timestamp>#USER#<userId>#CONNECTION#<connectionId>`.
+- Status index records use `gsi1pk = STATUS#<status>` and `gsi1sk = UPDATED_AT#<timestamp>#USER#<userId>`.
+- The persisted connection item stays intentionally small: status, stable Google subject, optional Gmail address, encrypted refresh token, and timestamps.
 
 ## Status and token lifecycle
 
 - `active`: token is expected to work and the connection can be processed.
-- `error`: token exchange or refresh failed and `tokenError` captures the latest failure details.
-- `revoked`: connection is intentionally disabled, and callers may also clear encrypted token fields.
+- `error`: token exchange or refresh failed and the connection should be excluded from active processing.
+- `revoked`: connection is intentionally disabled, and callers may also clear the encrypted refresh token.

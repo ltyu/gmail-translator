@@ -21,79 +21,59 @@ export const GMAIL_CONNECTION_STATUSES = ["active", "revoked", "error"] as const
 
 export type GmailConnectionStatus = (typeof GMAIL_CONNECTION_STATUSES)[number];
 
-export interface GmailConnectionTokenError {
-  code: string;
-  message?: string;
-  occurredAt: string;
-}
+export const PRIMARY_GMAIL_CONNECTION_ID = "primary" as const;
 
 export interface GmailConnectionRecord {
+  // Internal app user that owns this Gmail connection.
   userId: string;
-  connectionId: string;
+  // Fixed primary connection id for the MVP.
+  connectionId: typeof PRIMARY_GMAIL_CONNECTION_ID;
+  // Current lifecycle state for worker eligibility.
   status: GmailConnectionStatus;
+  // Stable Google account subject from OAuth identity data.
+  googleSub: string;
+  // Human-readable Gmail address for UI and debugging.
   gmailAddress?: string;
-  providerSubject?: string;
-  scopes: string[];
+  // KMS-encrypted Gmail refresh token used by backend workers.
   encryptedRefreshToken?: string;
-  tokenCiphertextVersion?: string;
-  tokenKmsKeyId?: string;
-  tokenUpdatedAt?: string;
-  lastAuthenticatedAt?: string;
-  tokenError?: GmailConnectionTokenError;
-  revokedAt?: string;
+  // When the connection record was first created.
   createdAt: string;
+  // When the connection record last changed.
   updatedAt: string;
 }
 
-export interface UpsertGmailConnectionInput {
+export interface UpsertPrimaryGmailConnectionInput {
+  // Internal app user that owns this Gmail connection.
   userId: string;
-  connectionId?: string;
-  status?: GmailConnectionStatus;
+  // Stable Google account subject from OAuth identity data.
+  googleSub: string;
+  // Human-readable Gmail address for UI and debugging.
   gmailAddress?: string;
-  providerSubject?: string;
-  scopes?: string[];
+  // KMS-encrypted Gmail refresh token to persist.
   encryptedRefreshToken: string;
-  tokenCiphertextVersion: string;
-  tokenKmsKeyId: string;
-  tokenUpdatedAt: string;
-  lastAuthenticatedAt?: string;
+  // Connection state to write; defaults to active.
+  status?: GmailConnectionStatus;
+  // Timestamp to use for createdAt/updatedAt bookkeeping.
+  occurredAt: string;
 }
 
-export interface UpdateGmailConnectionStatusInput {
+export interface ClearPrimaryGmailRefreshTokenInput {
+  // Internal app user that owns this Gmail connection.
   userId: string;
-  connectionId?: string;
-  status: GmailConnectionStatus;
-  changedAt?: string;
-  revokedAt?: string;
-}
-
-export interface RecordGmailConnectionTokenErrorInput {
-  userId: string;
-  connectionId?: string;
-  status?: Extract<GmailConnectionStatus, "error" | "revoked">;
-  error: GmailConnectionTokenError;
-}
-
-export interface ClearGmailConnectionTokenDataInput {
-  userId: string;
-  connectionId?: string;
+  // State to apply after removing the stored refresh token.
   status?: Extract<GmailConnectionStatus, "revoked" | "error">;
-  changedAt?: string;
-  revokedAt?: string;
-}
-
-export interface ListGmailConnectionsInput {
-  limit?: number;
+  // Timestamp to use for the status/token update.
+  occurredAt: string;
 }
 
 export interface GmailConnectionRepository {
-  upsert(input: UpsertGmailConnectionInput): Promise<GmailConnectionRecord>;
-  loadByUserId(userId: string): Promise<GmailConnectionRecord | null>;
-  listActiveConnections(input?: ListGmailConnectionsInput): Promise<GmailConnectionRecord[]>;
-  updateStatus(input: UpdateGmailConnectionStatusInput): Promise<void>;
-  recordTokenError(input: RecordGmailConnectionTokenErrorInput): Promise<void>;
-  clearTokenData(input: ClearGmailConnectionTokenDataInput): Promise<void>;
-  remove(userId: string, connectionId?: string): Promise<void>;
+  upsertPrimary(input: UpsertPrimaryGmailConnectionInput): Promise<GmailConnectionRecord>;
+  loadPrimaryByUserId(userId: string): Promise<GmailConnectionRecord | null>;
+  listActive(limit?: number): Promise<GmailConnectionRecord[]>;
+  markRevoked(userId: string, occurredAt: string): Promise<void>;
+  markError(userId: string, occurredAt: string): Promise<void>;
+  clearRefreshToken(input: ClearPrimaryGmailRefreshTokenInput): Promise<void>;
+  removePrimary(userId: string): Promise<void>;
 }
 
 export interface GmailTokenEncryptionContext {

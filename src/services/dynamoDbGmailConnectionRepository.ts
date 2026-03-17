@@ -1,81 +1,69 @@
 import {
   DeleteCommand,
   DynamoDBDocumentClient,
-  PutCommand,
+  GetCommand,
   QueryCommand,
   UpdateCommand,
+  PutCommand,
 } from "@aws-sdk/lib-dynamodb";
 import {
-  ClearGmailConnectionTokenDataInput,
+  ClearPrimaryGmailRefreshTokenInput,
   GmailConnectionRecord,
   GmailConnectionRepository,
   GmailConnectionStatus,
-  ListGmailConnectionsInput,
-  RecordGmailConnectionTokenErrorInput,
-  UpdateGmailConnectionStatusInput,
-  UpsertGmailConnectionInput,
+  PRIMARY_GMAIL_CONNECTION_ID,
+  UpsertPrimaryGmailConnectionInput,
 } from "../types.js";
 
-const DEFAULT_CONNECTION_ID = "primary";
-const ENTITY_TYPE = "gmail-connection";
-
 interface GmailConnectionItem {
+  // Partition key for all Gmail connection records owned by one app user.
   pk: string;
+  // Sort key for the primary Gmail connection record.
   sk: string;
-  entityType: string;
+  // Status-partitioned GSI key used to list active connections.
   gsi1pk: string;
+  // GSI sort key used to order connections by last update time.
   gsi1sk: string;
-  userId: string;
-  connectionId: string;
+  // Current lifecycle state for worker eligibility.
   status: GmailConnectionStatus;
+  // Stable Google account subject from OAuth identity data.
+  googleSub: string;
+  // Human-readable Gmail address for UI and debugging.
   gmailAddress?: string;
-  providerSubject?: string;
-  scopes?: string[];
+  // KMS-encrypted Gmail refresh token used by backend workers.
   encryptedRefreshToken?: string;
-  tokenCiphertextVersion?: string;
-  tokenKmsKeyId?: string;
-  tokenUpdatedAt?: string;
-  lastAuthenticatedAt?: string;
-  tokenError?: GmailConnectionRecord["tokenError"];
-  revokedAt?: string;
+  // When the connection record was first created.
   createdAt: string;
+  // When the connection record last changed.
   updatedAt: string;
 }
 
-function getConnectionId(connectionId?: string): string {
-  return connectionId ?? DEFAULT_CONNECTION_ID;
-}
-
-function buildKeys(userId: string, connectionId?: string): Pick<GmailConnectionItem, "pk" | "sk"> {
-  const resolvedConnectionId = getConnectionId(connectionId);
+function buildKeys(userId: string): Pick<GmailConnectionItem, "pk" | "sk"> {
   return {
     pk: `USER#${userId}`,
-    sk: `CONNECTION#${resolvedConnectionId}`,
+    sk: `CONNECTION#${PRIMARY_GMAIL_CONNECTION_ID}`,
   };
 }
 
-function buildStatusKeys(status: GmailConnectionStatus, updatedAt: string, userId: string, connectionId: string) {
+function buildStatusKeys(status: GmailConnectionStatus, updatedAt: string, userId: string) {
   return {
     gsi1pk: `STATUS#${status}`,
-    gsi1sk: `UPDATED_AT#${updatedAt}#USER#${userId}#CONNECTION#${connectionId}`,
+    gsi1sk: `UPDATED_AT#${updatedAt}#USER#${userId}`,
   };
+}
+
+function parseUserId(pk: string): string {
+  return pk.replace(/^USER#/, "");
 }
 
 function fromItem(item: GmailConnectionItem): GmailConnectionRecord {
   return {
-    userId: item.userId,
-    connectionId: item.connectionId,
+    userId: parseUserId(item.pk),
+    connectionId: PRIMARY_GMAIL_CONNECTION_ID,
     status: item.status,
+    googleSub: item.googleSub,
     gmailAddress: item.gmailAddress,
-    providerSubject: item.providerSubject,
-    scopes: item.scopes ?? [],
     encryptedRefreshToken: item.encryptedRefreshToken,
-    tokenCiphertextVersion: item.tokenCiphertextVersion,
-    tokenKmsKeyId: item.tokenKmsKeyId,
-    tokenUpdatedAt: item.tokenUpdatedAt,
-    lastAuthenticatedAt: item.lastAuthenticatedAt,
-    tokenError: item.tokenError,
-    revokedAt: item.revokedAt,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -88,31 +76,18 @@ export class DynamoDbGmailConnectionRepository implements GmailConnectionReposit
     private readonly statusIndexName: string,
   ) {}
 
-  async upsert(input: UpsertGmailConnectionInput): Promise<GmailConnectionRecord> {
-    const existing = await this.loadByUserId(input.userId);
-    const connectionId = getConnectionId(input.connectionId);
-    const now = input.lastAuthenticatedAt ?? input.tokenUpdatedAt;
+  async upsertPrimary(input: UpsertPrimaryGmailConnectionInput): Promise<GmailConnectionRecord> {
+    const existing = await this.loadPrimaryByUserId(input.userId);
     const status = input.status ?? "active";
-    const createdAt = existing?.createdAt ?? now;
     const item: GmailConnectionItem = {
-      ...buildKeys(input.userId, connectionId),
-      ...buildStatusKeys(status, now, input.userId, connectionId),
-      entityType: ENTITY_TYPE,
-      userId: input.userId,
-      connectionId,
+      ...buildKeys(input.userId),
+      ...buildStatusKeys(status, input.occurredAt, input.userId),
       status,
+      googleSub: input.googleSub,
       gmailAddress: input.gmailAddress,
-      providerSubject: input.providerSubject,
-      scopes: input.scopes ?? existing?.scopes ?? [],
       encryptedRefreshToken: input.encryptedRefreshToken,
-      tokenCiphertextVersion: input.tokenCiphertextVersion,
-      tokenKmsKeyId: input.tokenKmsKeyId,
-      tokenUpdatedAt: input.tokenUpdatedAt,
-      lastAuthenticatedAt: input.lastAuthenticatedAt ?? existing?.lastAuthenticatedAt,
-      tokenError: undefined,
-      revokedAt: status === "revoked" ? now : undefined,
-      createdAt,
-      updatedAt: now,
+      createdAt: existing?.createdAt ?? input.occurredAt,
+      updatedAt: input.occurredAt,
     };
 
     await this.ddb.send(
@@ -125,23 +100,19 @@ export class DynamoDbGmailConnectionRepository implements GmailConnectionReposit
     return fromItem(item);
   }
 
-  async loadByUserId(userId: string): Promise<GmailConnectionRecord | null> {
+  async loadPrimaryByUserId(userId: string): Promise<GmailConnectionRecord | null> {
     const response = await this.ddb.send(
-      new QueryCommand({
+      new GetCommand({
         TableName: this.tableName,
-        KeyConditionExpression: "pk = :pk",
-        ExpressionAttributeValues: {
-          ":pk": buildKeys(userId).pk,
-        },
-        Limit: 1,
+        Key: buildKeys(userId),
       }),
     );
 
-    const item = response.Items?.[0] as GmailConnectionItem | undefined;
+    const item = response.Item as GmailConnectionItem | undefined;
     return item ? fromItem(item) : null;
   }
 
-  async listActiveConnections(input: ListGmailConnectionsInput = {}): Promise<GmailConnectionRecord[]> {
+  async listActive(limit?: number): Promise<GmailConnectionRecord[]> {
     const response = await this.ddb.send(
       new QueryCommand({
         TableName: this.tableName,
@@ -150,133 +121,88 @@ export class DynamoDbGmailConnectionRepository implements GmailConnectionReposit
         ExpressionAttributeValues: {
           ":status": "STATUS#active",
         },
-        Limit: input.limit,
+        Limit: limit,
       }),
     );
 
     return (response.Items ?? []).map((item) => fromItem(item as GmailConnectionItem));
   }
 
-  async updateStatus(input: UpdateGmailConnectionStatusInput): Promise<void> {
-    const connection = await this.getRequiredConnection(input.userId);
-    const connectionId = getConnectionId(input.connectionId);
-    const updatedAt = input.changedAt ?? input.revokedAt ?? new Date().toISOString();
-    const statusKeys = buildStatusKeys(input.status, updatedAt, input.userId, connectionId);
-
-    await this.ddb.send(
-      new UpdateCommand({
-        TableName: this.tableName,
-        Key: buildKeys(input.userId, connectionId),
-        UpdateExpression: [
-          "SET #status = :status",
-          "updatedAt = :updatedAt",
-          "gsi1pk = :gsi1pk",
-          "gsi1sk = :gsi1sk",
-          "revokedAt = :revokedAt",
-          "tokenError = :tokenError",
-        ].join(", "),
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":status": input.status,
-          ":updatedAt": updatedAt,
-          ":gsi1pk": statusKeys.gsi1pk,
-          ":gsi1sk": statusKeys.gsi1sk,
-          ":revokedAt": input.status === "revoked" ? input.revokedAt ?? updatedAt : null,
-          ":tokenError": input.status === "error" ? connection.tokenError ?? null : null,
-        },
-      }),
-    );
+  async markRevoked(userId: string, occurredAt: string): Promise<void> {
+    await this.updateConnectionStatus(userId, "revoked", occurredAt);
   }
 
-  async recordTokenError(input: RecordGmailConnectionTokenErrorInput): Promise<void> {
-    const connectionId = getConnectionId(input.connectionId);
-    const status = input.status ?? "error";
-    const statusKeys = buildStatusKeys(status, input.error.occurredAt, input.userId, connectionId);
-
-    await this.ddb.send(
-      new UpdateCommand({
-        TableName: this.tableName,
-        Key: buildKeys(input.userId, connectionId),
-        UpdateExpression: [
-          "SET #status = :status",
-          "updatedAt = :updatedAt",
-          "gsi1pk = :gsi1pk",
-          "gsi1sk = :gsi1sk",
-          "tokenError = :tokenError",
-        ].join(", "),
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":status": status,
-          ":updatedAt": input.error.occurredAt,
-          ":gsi1pk": statusKeys.gsi1pk,
-          ":gsi1sk": statusKeys.gsi1sk,
-          ":tokenError": input.error,
-        },
-      }),
-    );
+  async markError(userId: string, occurredAt: string): Promise<void> {
+    await this.updateConnectionStatus(userId, "error", occurredAt);
   }
 
-  async clearTokenData(input: ClearGmailConnectionTokenDataInput): Promise<void> {
-    const connectionId = getConnectionId(input.connectionId);
-    const updatedAt = input.changedAt ?? input.revokedAt ?? new Date().toISOString();
+  async clearRefreshToken(input: ClearPrimaryGmailRefreshTokenInput): Promise<void> {
     const status = input.status ?? "revoked";
-    const statusKeys = buildStatusKeys(status, updatedAt, input.userId, connectionId);
+    const statusKeys = buildStatusKeys(status, input.occurredAt, input.userId);
 
     await this.ddb.send(
       new UpdateCommand({
         TableName: this.tableName,
-        Key: buildKeys(input.userId, connectionId),
+        Key: buildKeys(input.userId),
+        ConditionExpression: "attribute_exists(pk) AND attribute_exists(sk)",
         UpdateExpression: [
           "SET #status = :status",
           "updatedAt = :updatedAt",
           "gsi1pk = :gsi1pk",
           "gsi1sk = :gsi1sk",
-          "revokedAt = :revokedAt",
           "encryptedRefreshToken = :encryptedRefreshToken",
-          "tokenCiphertextVersion = :tokenCiphertextVersion",
-          "tokenKmsKeyId = :tokenKmsKeyId",
-          "tokenUpdatedAt = :tokenUpdatedAt",
-          "tokenError = :tokenError",
         ].join(", "),
         ExpressionAttributeNames: {
           "#status": "status",
         },
         ExpressionAttributeValues: {
           ":status": status,
-          ":updatedAt": updatedAt,
+          ":updatedAt": input.occurredAt,
           ":gsi1pk": statusKeys.gsi1pk,
           ":gsi1sk": statusKeys.gsi1sk,
-          ":revokedAt": status === "revoked" ? input.revokedAt ?? updatedAt : null,
           ":encryptedRefreshToken": null,
-          ":tokenCiphertextVersion": null,
-          ":tokenKmsKeyId": null,
-          ":tokenUpdatedAt": null,
-          ":tokenError": null,
         },
       }),
     );
   }
 
-  async remove(userId: string, connectionId?: string): Promise<void> {
+  async removePrimary(userId: string): Promise<void> {
     await this.ddb.send(
       new DeleteCommand({
         TableName: this.tableName,
-        Key: buildKeys(userId, connectionId),
+        Key: buildKeys(userId),
       }),
     );
   }
 
-  private async getRequiredConnection(userId: string): Promise<GmailConnectionRecord> {
-    const connection = await this.loadByUserId(userId);
+  private async updateConnectionStatus(
+    userId: string,
+    status: Extract<GmailConnectionStatus, "revoked" | "error">,
+    occurredAt: string,
+  ): Promise<void> {
+    const statusKeys = buildStatusKeys(status, occurredAt, userId);
 
-    if (!connection) {
-      throw new Error(`Missing Gmail connection for user ${userId}`);
-    }
-
-    return connection;
+    await this.ddb.send(
+      new UpdateCommand({
+        TableName: this.tableName,
+        Key: buildKeys(userId),
+        ConditionExpression: "attribute_exists(pk) AND attribute_exists(sk)",
+        UpdateExpression: [
+          "SET #status = :status",
+          "updatedAt = :updatedAt",
+          "gsi1pk = :gsi1pk",
+          "gsi1sk = :gsi1sk",
+        ].join(", "),
+        ExpressionAttributeNames: {
+          "#status": "status",
+        },
+        ExpressionAttributeValues: {
+          ":status": status,
+          ":updatedAt": occurredAt,
+          ":gsi1pk": statusKeys.gsi1pk,
+          ":gsi1sk": statusKeys.gsi1sk,
+        },
+      }),
+    );
   }
 }
