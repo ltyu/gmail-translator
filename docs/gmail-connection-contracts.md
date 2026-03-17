@@ -23,10 +23,10 @@
 
 ## Data model notes
 
-- Primary key design is `pk = USER#<userId>` and `sk = CONNECTION#<connectionId>`.
+- Primary key design is `pk = <userId>` and `sk = <connectionId>`.
 - The MVP uses one connection per user and defaults `connectionId` to `primary`.
 - This allows a future multi-connection rollout to add non-primary sort keys without changing the partition model.
-- Status index records use `gsi1pk = STATUS#<status>` and `gsi1sk = UPDATED_AT#<timestamp>#USER#<userId>`.
+- Status index records use `gsi1pk = <status>` and `gsi1sk = <updatedAt>`.
 - The persisted connection item stays intentionally small: status, stable Google subject, optional Gmail address, encrypted refresh token, and timestamps.
 
 ## Status and token lifecycle
