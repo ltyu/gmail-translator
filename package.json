@@ -2,11 +2,12 @@
   "name": "gmail-translator",
   "version": "1.0.0",
   "description": "Auto-translate English Gmail emails to Simplified Chinese using Claude",
+  "packageManager": "pnpm@10.4.1",
   "type": "module",
   "scripts": {
     "build": "esbuild src/handler.ts --bundle --platform=node --target=node20 --outfile=dist/handler.mjs --format=esm --external:@aws-sdk",
     "lint": "eslint \"src/**/*.ts\" \"*.ts\"",
-    "setup": "npx tsx setup-gmail-token.ts",
+    "setup": "tsx setup-gmail-token.ts",
     "test": "vitest",
     "test:run": "vitest run",
     "secrets:scan": "gitleaks git --redact --no-banner",

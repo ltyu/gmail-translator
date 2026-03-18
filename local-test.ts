@@ -1,7 +1,7 @@
 /**
  * Local test script — runs the Lambda handler directly.
  *
- * Usage: npx tsx local-test.ts
+ * Usage: pnpm exec tsx local-test.ts
  *
  * Requires:
  *   - AWS credentials configured locally (`aws configure`)

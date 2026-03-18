@@ -4,7 +4,7 @@
  * Usage:
  *   1. Create OAuth2 credentials (Desktop app) in Google Cloud Console
  *   2. Download the JSON and note the client_id and client_secret
- *   3. Run: npx tsx setup-gmail-token.ts <client_id> <client_secret>
+ *   3. Run: pnpm exec tsx setup-gmail-token.ts <client_id> <client_secret>
  *   4. A browser window will open for Google consent
  *   5. The refresh token will be printed — use it during `sam deploy --guided`
  */
@@ -26,7 +26,7 @@ async function main() {
 
   if (!clientId || !clientSecret) {
     console.error(
-      "Usage: npx tsx setup-gmail-token.ts <client_id> <client_secret>"
+      "Usage: pnpm exec tsx setup-gmail-token.ts <client_id> <client_secret>"
     );
     process.exit(1);
   }
