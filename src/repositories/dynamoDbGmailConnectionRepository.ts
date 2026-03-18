@@ -9,13 +9,13 @@ import {
 import {
   ClearPrimaryGmailRefreshTokenInput,
   GmailConnectionRecord,
-  GmailConnectionRepository,
+  IGmailConnectionRepository,
   GmailConnectionStatus,
   PRIMARY_GMAIL_CONNECTION_ID,
   UpsertPrimaryGmailConnectionInput,
 } from "../types.js";
 
-interface GmailConnectionItem {
+type GmailConnectionItem = {
   // Partition key set directly to the owning app user id.
   pk: string;
   // Sort key for the primary Gmail connection record.
@@ -36,7 +36,7 @@ interface GmailConnectionItem {
   createdAt: string;
   // When the connection record last changed.
   updatedAt: string;
-}
+};
 
 function buildKeys(userId: string): Pick<GmailConnectionItem, "pk" | "sk"> {
   return {
@@ -65,7 +65,7 @@ function fromItem(item: GmailConnectionItem): GmailConnectionRecord {
   };
 }
 
-export class DynamoDbGmailConnectionRepository implements GmailConnectionRepository {
+export class DynamoDbGmailConnectionRepository implements IGmailConnectionRepository {
   constructor(
     private readonly ddb: DynamoDBDocumentClient,
     private readonly tableName: string,

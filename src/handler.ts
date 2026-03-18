@@ -13,11 +13,11 @@ import { AnthropicTranslationService } from "./services/translatorService.js";
 import {
   AppConfig,
   GmailConnectionRecord,
-  GmailConnectionRepository,
-  GmailService,
-  GmailTokenEncryptionService,
-  ProcessedEmailRepository,
-  TranslationService,
+  IGmailConnectionRepository,
+  IGmailService,
+  IGmailTokenEncryptionService,
+  IProcessedEmailRepository,
+  ITranslationService,
 } from "./types.js";
 import { buildGmailClient } from "./utils/buildGmailClient.js";
 
@@ -93,9 +93,9 @@ function createConnectionLogger(
 }
 
 function createScopedProcessedEmailRepository(
-  repository: ProcessedEmailRepository,
+  repository: IProcessedEmailRepository,
   connection: GmailConnectionRecord,
-): ProcessedEmailRepository {
+): IProcessedEmailRepository {
   function scopedMessageId(emailId: string): string {
     return `${connection.userId}:${emailId}`;
   }
@@ -112,13 +112,13 @@ function createScopedProcessedEmailRepository(
 
 export async function processActiveConnections(
   connections: GmailConnectionRecord[],
-  gmailConnectionRepository: GmailConnectionRepository,
-  tokenEncryptionService: GmailTokenEncryptionService,
+  gmailConnectionRepository: IGmailConnectionRepository,
+  tokenEncryptionService: IGmailTokenEncryptionService,
   appSecrets: { gmailOAuthClientId: string; gmailOAuthClientSecret: string },
-  translationService: TranslationService,
-  processedEmailRepository: ProcessedEmailRepository,
+  translationService: ITranslationService,
+  processedEmailRepository: IProcessedEmailRepository,
   logger: Pick<Console, "log"> = console,
-  createGmailService: (refreshToken: string) => GmailService = (refreshToken: string) =>
+  createGmailService: (refreshToken: string) => IGmailService = (refreshToken: string) =>
     new GmailMessageService(
       buildGmailClient(
         {
@@ -164,9 +164,9 @@ export async function processActiveConnections(
 }
 
 export async function processInbox(
-  gmailService: GmailService,
-  translationService: TranslationService,
-  processedEmailRepository: ProcessedEmailRepository,
+  gmailService: IGmailService,
+  translationService: ITranslationService,
+  processedEmailRepository: IProcessedEmailRepository,
   logger: Pick<Console, "log"> = console,
 ): Promise<void> {
   const myEmail = await gmailService.getAuthenticatedEmail();

@@ -71,9 +71,9 @@ Repository guidance for coding agents working in `gmail-translator`.
 
 ## Type Guidance
 
-- Prefer interfaces for boundaries between modules and external systems.
+- Use `interface` for public contracts that classes implement or that cross module boundaries. Prefix exported interfaces with `I` (e.g. `IGmailService`, `IOAuthStateRepository`). These live in `src/types.ts`.
+- Use `type` for local, file-scoped shapes that are never implemented or extended: dependency bags, config objects, and internal data items (e.g. `GoogleOAuthCallbackDependencies`, `GmailConnectionItem`). Do not prefix these with `I`.
 - Inject SDK clients through constructors for testability.
-- Reuse existing interfaces such as `GmailService`, `TranslationService`, and `ProcessedEmailRepository`.
 - Avoid `any` in production code; current `any` usage is mostly in Gmail payload parsing and lightweight test doubles.
 
 ## Architecture Patterns

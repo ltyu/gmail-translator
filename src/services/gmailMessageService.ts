@@ -3,12 +3,12 @@ import { extractBody, getHeader } from "../utils/emailParser.js";
 import { buildRawReply } from "../utils/replyComposer.js";
 import {
   EmailMessage,
-  GmailService,
+  IGmailService,
   InboxMessageSummary,
   SendReplyInput,
 } from "../types.js";
 
-export class GmailMessageService implements GmailService {
+export class GmailMessageService implements IGmailService {
   constructor(private readonly gmailClient: gmail_v1.Gmail) {}
 
   async getAuthenticatedEmail(): Promise<string> {

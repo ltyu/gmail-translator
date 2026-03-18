@@ -2,24 +2,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { processActiveConnections, processInbox } from "./handler.js";
 import {
   EmailMessage,
-  GmailConnectionRepository,
-  GmailTokenEncryptionService,
-  GmailService,
-  ProcessedEmailRepository,
-  TranslationService,
+  IGmailConnectionRepository,
+  IGmailTokenEncryptionService,
+  IGmailService,
+  IProcessedEmailRepository,
+  ITranslationService,
 } from "./types.js";
 
 describe("EmailTranslationJob", () => {
-  const gmailService: GmailService = {
+  const gmailService: IGmailService = {
     getAuthenticatedEmail: vi.fn(),
     listRecentInboxMessages: vi.fn(),
     getMessage: vi.fn(),
     sendReply: vi.fn(),
   };
-  const translationService: TranslationService = {
+  const translationService: ITranslationService = {
     translateText: vi.fn(),
   };
-  const processedEmailRepository: ProcessedEmailRepository = {
+  const processedEmailRepository: IProcessedEmailRepository = {
     isProcessed: vi.fn(),
     markProcessed: vi.fn(),
   };
@@ -76,7 +76,7 @@ describe("EmailTranslationJob", () => {
 
 describe("processActiveConnections", () => {
   it("processes each active connection with a scoped processed-email key", async () => {
-    const gmailConnectionRepository: GmailConnectionRepository = {
+    const gmailConnectionRepository: IGmailConnectionRepository = {
       upsertPrimary: vi.fn(),
       loadPrimaryByUserId: vi.fn(),
       listActive: vi.fn(),
@@ -85,19 +85,19 @@ describe("processActiveConnections", () => {
       clearRefreshToken: vi.fn(),
       removePrimary: vi.fn(),
     };
-    const tokenEncryptionService: GmailTokenEncryptionService = {
+    const tokenEncryptionService: IGmailTokenEncryptionService = {
       encryptRefreshToken: vi.fn(),
       decryptRefreshToken: vi.fn().mockResolvedValue("refresh-token"),
     };
-    const translationService: TranslationService = {
+  const translationService: ITranslationService = {
       translateText: vi.fn().mockResolvedValue("translated"),
     };
-    const processedEmailRepository: ProcessedEmailRepository = {
+  const processedEmailRepository: IProcessedEmailRepository = {
       isProcessed: vi.fn().mockResolvedValue(false),
       markProcessed: vi.fn(),
     };
 
-    const gmailService: GmailService = {
+  const gmailService: IGmailService = {
       getAuthenticatedEmail: vi.fn().mockResolvedValue("me@example.com"),
       listRecentInboxMessages: vi.fn().mockResolvedValue([{ id: "msg-1" }]),
       getMessage: vi.fn().mockResolvedValue(makeMessage({ id: "msg-1" })),
@@ -135,7 +135,7 @@ describe("processActiveConnections", () => {
   });
 
   it("marks the connection as error after a permanent auth failure", async () => {
-    const gmailConnectionRepository: GmailConnectionRepository = {
+    const gmailConnectionRepository: IGmailConnectionRepository = {
       upsertPrimary: vi.fn(),
       loadPrimaryByUserId: vi.fn(),
       listActive: vi.fn(),
@@ -144,7 +144,7 @@ describe("processActiveConnections", () => {
       clearRefreshToken: vi.fn(),
       removePrimary: vi.fn(),
     };
-    const tokenEncryptionService: GmailTokenEncryptionService = {
+    const tokenEncryptionService: IGmailTokenEncryptionService = {
       encryptRefreshToken: vi.fn(),
       decryptRefreshToken: vi.fn().mockRejectedValue(new Error("invalid_grant")),
     };
@@ -178,7 +178,7 @@ describe("processActiveConnections", () => {
   });
 });
 
-function gmailServiceThatShouldNotBeUsed(): GmailService {
+function gmailServiceThatShouldNotBeUsed(): IGmailService {
   throw new Error("createGmailService should not be called");
 }
 

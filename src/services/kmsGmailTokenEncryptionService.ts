@@ -1,5 +1,5 @@
 import { DecryptCommand, EncryptCommand, KMSClient } from "@aws-sdk/client-kms";
-import { GmailTokenEncryptionContext, GmailTokenEncryptionService } from "../types.js";
+import { GmailTokenEncryptionContext, IGmailTokenEncryptionService } from "../types.js";
 
 const TOKEN_CIPHERTEXT_ENCODING = "base64";
 const TOKEN_ENCRYPTION_PURPOSE = "gmail-refresh-token";
@@ -16,7 +16,7 @@ function toUint8Array(value: string): Uint8Array {
   return Buffer.from(value, "utf8");
 }
 
-export class KmsGmailTokenEncryptionService implements GmailTokenEncryptionService {
+export class KmsGmailTokenEncryptionService implements IGmailTokenEncryptionService {
   constructor(
     private readonly kms: KMSClient,
     private readonly keyId: string,

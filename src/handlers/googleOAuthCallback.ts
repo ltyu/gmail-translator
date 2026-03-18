@@ -3,22 +3,24 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { KMSClient } from "@aws-sdk/client-kms";
 import { SSMClient } from "@aws-sdk/client-ssm";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { google } from "googleapis";
 import { DynamoDbGmailConnectionRepository } from "../repositories/dynamoDbGmailConnectionRepository.js";
 import { DynamoDbOAuthStateRepository } from "../repositories/dynamoDbOAuthStateRepository.js";
+import { GoogleOAuthClient } from "../services/googleOAuthClient.js";
 import { KmsGmailTokenEncryptionService } from "../services/kmsGmailTokenEncryptionService.js";
 import { ParameterStoreService } from "../services/parameterStore.js";
 import {
-  GmailConnectionRepository,
-  GmailTokenEncryptionService,
-  OAuthStateRepository,
+  IGmailConnectionRepository,
+  IGmailTokenEncryptionService,
+  IGoogleOAuthClient,
+  IOAuthStateRepository,
 } from "../types.js";
+
 
 const ssm = new SSMClient({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const kms = new KMSClient({});
 
-interface GoogleOAuthCallbackConfig {
+type GoogleOAuthCallbackConfig = {
   appSecretsPrefix: string;
   oauthStateTable: string;
   gmailConnectionsTable: string;
@@ -26,39 +28,17 @@ interface GoogleOAuthCallbackConfig {
   gmailTokenKmsKeyId: string;
   successRedirectUrl: string;
   failureRedirectUrl: string;
-}
+};
 
-interface TokenExchangeResult {
-  refreshToken?: string;
-  accessToken?: string;
-}
-
-interface GoogleAccountProfile {
-  googleSub: string;
-  gmailAddress?: string;
-}
-
-interface GoogleOAuthCallbackDependencies {
+type GoogleOAuthCallbackDependencies = {
   parameterStore: ParameterStoreService;
-  oauthStateRepository: OAuthStateRepository;
-  gmailConnectionRepository: GmailConnectionRepository;
-  tokenEncryptionService: GmailTokenEncryptionService;
-  exchangeCodeForTokens: (input: {
-    clientId: string;
-    clientSecret: string;
-    redirectUri: string;
-    code: string;
-  }) => Promise<TokenExchangeResult>;
-  getGoogleAccountProfile: (input: {
-    clientId: string;
-    clientSecret: string;
-    redirectUri: string;
-    accessToken?: string;
-    refreshToken?: string;
-  }) => Promise<GoogleAccountProfile>;
+  oauthStateRepository: IOAuthStateRepository;
+  gmailConnectionRepository: IGmailConnectionRepository;
+  tokenEncryptionService: IGmailTokenEncryptionService;
+  googleOAuthClient: IGoogleOAuthClient;
   getNow?: () => Date;
   logger?: Pick<Console, "error">;
-}
+};
 
 function getConfig(): GoogleOAuthCallbackConfig {
   const appSecretsPrefix = process.env.APP_SECRETS_SSM_PREFIX;
@@ -108,48 +88,6 @@ function getConfig(): GoogleOAuthCallbackConfig {
   };
 }
 
-async function exchangeCodeForTokens(input: {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  code: string;
-}): Promise<TokenExchangeResult> {
-  const oauth2Client = new google.auth.OAuth2(input.clientId, input.clientSecret, input.redirectUri);
-  const { tokens } = await oauth2Client.getToken(input.code);
-
-  return {
-    refreshToken: tokens.refresh_token ?? undefined,
-    accessToken: tokens.access_token ?? undefined,
-  };
-}
-
-async function getGoogleAccountProfile(input: {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  accessToken?: string;
-  refreshToken?: string;
-}): Promise<GoogleAccountProfile> {
-  const oauth2Client = new google.auth.OAuth2(input.clientId, input.clientSecret, input.redirectUri);
-  oauth2Client.setCredentials({
-    access_token: input.accessToken,
-    refresh_token: input.refreshToken,
-  });
-
-  const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
-  const response = await oauth2.userinfo.get();
-  const googleSub = response.data.id;
-
-  if (!googleSub) {
-    throw new Error("Unable to determine Google account subject");
-  }
-
-  return {
-    googleSub,
-    gmailAddress: response.data.email ?? undefined,
-  };
-}
-
 function redirect(location: string): APIGatewayProxyStructuredResultV2 {
   return {
     statusCode: 302,
@@ -184,7 +122,7 @@ export function createGoogleOAuthCallbackHandler(dependencies: GoogleOAuthCallba
 
     try {
       const params = await dependencies.parameterStore.loadParams();
-      const tokenResult = await dependencies.exchangeCodeForTokens({
+      const tokenResult = await dependencies.googleOAuthClient.exchangeCodeForTokens({
         clientId: params.gmailOAuthClientId,
         clientSecret: params.gmailOAuthClientSecret,
         redirectUri: stateRecord.redirectUri,
@@ -198,7 +136,7 @@ export function createGoogleOAuthCallbackHandler(dependencies: GoogleOAuthCallba
         return redirect(config.failureRedirectUrl);
       }
 
-      const googleAccountProfile = await dependencies.getGoogleAccountProfile({
+      const googleAccountProfile = await dependencies.googleOAuthClient.getGoogleAccountProfile({
         clientId: params.gmailOAuthClientId,
         clientSecret: params.gmailOAuthClientSecret,
         redirectUri: stateRecord.redirectUri,
@@ -244,8 +182,7 @@ export async function handler(
       config.gmailConnectionsStatusIndex,
     ),
     tokenEncryptionService: new KmsGmailTokenEncryptionService(kms, config.gmailTokenKmsKeyId),
-    exchangeCodeForTokens,
-    getGoogleAccountProfile,
+    googleOAuthClient: new GoogleOAuthClient(),
   });
 
   return defaultHandler(event);

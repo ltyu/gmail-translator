@@ -8,35 +8,32 @@ import { SSMClient } from "@aws-sdk/client-ssm";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { HeaderAuthenticatedAppUserProvider } from "../services/headerAuthenticatedAppUserProvider.js";
 import { DynamoDbOAuthStateRepository } from "../repositories/dynamoDbOAuthStateRepository.js";
+import { GoogleOAuthClient } from "../services/googleOAuthClient.js";
 import { ParameterStoreService } from "../services/parameterStore.js";
 import {
-  AuthenticatedAppUserProvider,
-  OAuthStateRepository,
+  IAuthenticatedAppUserProvider,
+  IGoogleOAuthClient,
+  IOAuthStateRepository,
 } from "../types.js";
 
-const GOOGLE_OAUTH_SCOPES = [
-  "openid",
-  "email",
-  "https://www.googleapis.com/auth/gmail.readonly",
-  "https://www.googleapis.com/auth/gmail.send",
-];
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 const ssm = new SSMClient({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
-interface StartGoogleOAuthConfig {
+type StartGoogleOAuthConfig = {
   appSecretsPrefix: string;
   oauthStateTable: string;
-}
+};
 
-interface StartGoogleOAuthDependencies {
+type StartGoogleOAuthDependencies = {
   parameterStore: ParameterStoreService;
-  authProvider: AuthenticatedAppUserProvider<APIGatewayProxyEventV2>;
-  oauthStateRepository: OAuthStateRepository;
+  authProvider: IAuthenticatedAppUserProvider<APIGatewayProxyEventV2>;
+  oauthStateRepository: IOAuthStateRepository;
+  googleOAuthClient?: IGoogleOAuthClient;
   createState?: () => string;
   getNow?: () => Date;
-}
+};
 
 function getConfig(): StartGoogleOAuthConfig {
   const appSecretsPrefix = process.env.APP_SECRETS_SSM_PREFIX;
@@ -57,24 +54,6 @@ function createState(): string {
   return randomBytes(24).toString("hex");
 }
 
-function buildGoogleConsentUrl(
-  clientId: string,
-  callbackUrl: string,
-  state: string,
-): string {
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: callbackUrl,
-    response_type: "code",
-    access_type: "offline",
-    prompt: "consent",
-    scope: GOOGLE_OAUTH_SCOPES.join(" "),
-    state,
-  });
-
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-}
-
 function buildCallbackUrl(event: APIGatewayProxyEventV2): string {
   const domainName = event.requestContext?.domainName;
   const stage = event.requestContext?.stage;
@@ -93,6 +72,7 @@ export function createStartGoogleOAuthHandler(
 ) {
   const generateState = dependencies.createState ?? createState;
   const getNow = dependencies.getNow ?? (() => new Date());
+  const oauthClient = dependencies.googleOAuthClient ?? new GoogleOAuthClient();
 
   return async function startGoogleOAuth(
     event: APIGatewayProxyEventV2,
@@ -129,7 +109,7 @@ export function createStartGoogleOAuthHandler(
     return {
       statusCode: 302,
       headers: {
-        location: buildGoogleConsentUrl(
+        location: oauthClient.buildConsentUrl(
           params.gmailOAuthClientId,
           callbackUrl,
           state,
@@ -150,6 +130,7 @@ export async function handler(
       ddb,
       config.oauthStateTable,
     ),
+    googleOAuthClient: new GoogleOAuthClient(),
   });
 
   return defaultHandler(event);
