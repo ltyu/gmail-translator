@@ -25,6 +25,10 @@ Parameters:
     Type: String
     Description: SSM prefix for app-level secrets
     Default: /gmail-translator
+  ResourceNamePrefixParam:
+    Type: String
+    Description: Prefix used for named AWS resources in this stack
+    Default: gmail-translator
   GmailConnectionSuccessRedirectUrlParam:
     Type: String
     Description: OAuth success redirect URL for future callback handlers
@@ -33,16 +37,12 @@ Parameters:
     Type: String
     Description: OAuth failure redirect URL for future callback handlers
     Default: https://example.com/settings/integrations/gmail/error
-  GoogleOAuthCallbackUrlParam:
-    Type: String
-    Description: Backend callback URL registered with Google OAuth
-    Default: https://example.com/auth/google/callback
 
 Resources:
   TranslatedEmailsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: gmail-translated-emails
+      TableName: !Sub ${ResourceNamePrefixParam}-translated-emails
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: email_id
@@ -57,7 +57,7 @@ Resources:
   GmailConnectionsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: gmail-user-connections
+      TableName: !Sub ${ResourceNamePrefixParam}-user-connections
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: pk
@@ -86,7 +86,7 @@ Resources:
   GoogleOAuthStatesTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: gmail-google-oauth-states
+      TableName: !Sub ${ResourceNamePrefixParam}-google-oauth-states
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: state
@@ -116,7 +116,7 @@ Resources:
   GmailRefreshTokenKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
-      AliasName: alias/gmail-translator-refresh-token
+      AliasName: !Sub alias/${ResourceNamePrefixParam}-refresh-token
       TargetKeyId: !Ref GmailRefreshTokenKey
 
   AnthropicApiKey:
@@ -143,7 +143,7 @@ Resources:
   TranslatorFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: gmail-translator
+      FunctionName: !Ref ResourceNamePrefixParam
       CodeUri: ./
       Handler: handler.handler
       Environment:
@@ -156,7 +156,6 @@ Resources:
           GMAIL_CONNECTION_SUCCESS_REDIRECT_URL: !Ref GmailConnectionSuccessRedirectUrlParam
           GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
           GOOGLE_OAUTH_STATES_TABLE: !Ref GoogleOAuthStatesTable
-          GOOGLE_OAUTH_CALLBACK_URL: !Ref GoogleOAuthCallbackUrlParam
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TranslatedEmailsTable
@@ -197,7 +196,7 @@ Resources:
   StartGoogleOAuthFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: gmail-translator-start-google-oauth
+      FunctionName: !Sub ${ResourceNamePrefixParam}-start-google-oauth
       CodeUri: ./
       Handler: startGoogleOAuth.handler
       Environment:
@@ -209,7 +208,6 @@ Resources:
           GMAIL_CONNECTION_SUCCESS_REDIRECT_URL: !Ref GmailConnectionSuccessRedirectUrlParam
           GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
           GOOGLE_OAUTH_STATES_TABLE: !Ref GoogleOAuthStatesTable
-          GOOGLE_OAUTH_CALLBACK_URL: !Ref GoogleOAuthCallbackUrlParam
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref GmailConnectionsTable
@@ -248,7 +246,7 @@ Resources:
   GoogleOAuthCallbackFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: gmail-translator-google-oauth-callback
+      FunctionName: !Sub ${ResourceNamePrefixParam}-google-oauth-callback
       CodeUri: ./
       Handler: googleOAuthCallback.handler
       Environment:
@@ -260,7 +258,6 @@ Resources:
           GMAIL_CONNECTION_SUCCESS_REDIRECT_URL: !Ref GmailConnectionSuccessRedirectUrlParam
           GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
           GOOGLE_OAUTH_STATES_TABLE: !Ref GoogleOAuthStatesTable
-          GOOGLE_OAUTH_CALLBACK_URL: !Ref GoogleOAuthCallbackUrlParam
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref GmailConnectionsTable
@@ -299,7 +296,7 @@ Resources:
   DisconnectGoogleOAuthFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: gmail-translator-disconnect-google-oauth
+      FunctionName: !Sub ${ResourceNamePrefixParam}-disconnect-google-oauth
       CodeUri: ./
       Handler: disconnectGoogleOAuth.handler
       Environment:
@@ -347,6 +344,12 @@ Outputs:
   TranslatorFunctionArn:
     Description: Lambda function ARN
     Value: !GetAtt TranslatorFunction.Arn
+  OAuthHttpApiBaseUrl:
+    Description: Base URL for the OAuth HttpApi
+    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+  GoogleOAuthCallbackUrl:
+    Description: Deployed Google OAuth callback URL
+    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/auth/google/callback
   GmailConnectionsTableName:
     Description: DynamoDB table for per-user Gmail connections
     Value: !Ref GmailConnectionsTable

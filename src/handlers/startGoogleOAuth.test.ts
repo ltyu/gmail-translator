@@ -9,7 +9,6 @@ describe("startGoogleOAuth", () => {
     process.env = {
       ...originalEnv,
       APP_SECRETS_SSM_PREFIX: "/gmail-translator",
-      GOOGLE_OAUTH_CALLBACK_URL: "https://example.com/auth/google/callback",
       GOOGLE_OAUTH_STATES_TABLE: "oauth-states",
     };
   });
@@ -43,7 +42,13 @@ describe("startGoogleOAuth", () => {
       getNow: () => new Date("2026-03-17T10:00:00.000Z"),
     });
 
-    const response = await handler({ headers: { "x-authenticated-user-id": "user-123" } } as any);
+    const response = await handler({
+      headers: { "x-authenticated-user-id": "user-123" },
+      requestContext: {
+        domainName: "example.com",
+        stage: "$default",
+      },
+    } as any);
 
     expect(create).toHaveBeenCalledWith({
       state: "state-123",
@@ -58,6 +63,7 @@ describe("startGoogleOAuth", () => {
     expect(response.headers?.location).toContain("redirect_uri=https%3A%2F%2Fexample.com%2Fauth%2Fgoogle%2Fcallback");
     expect(response.headers?.location).toContain("access_type=offline");
     expect(response.headers?.location).toContain("prompt=consent");
+    expect(response.headers?.location).toContain("scope=openid+email+");
     expect(response.headers?.location).toContain("state=state-123");
   });
 });
