@@ -37,8 +37,27 @@ Parameters:
     Type: String
     Description: OAuth failure redirect URL for future callback handlers
     Default: https://example.com/settings/integrations/gmail/error
+  Auth0IssuerParam:
+    Type: String
+    Description: Auth0 issuer URL (e.g. https://YOUR_DOMAIN.auth0.com/). Find this in Auth0 dashboard under Applications > APIs > your API > Settings.
+  Auth0AudienceParam:
+    Type: String
+    Description: Auth0 API audience identifier (e.g. https://gmail-translator-api). Set when creating the API in the Auth0 dashboard.
 
 Resources:
+  GmailTranslatorHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Auth:
+        DefaultAuthorizer: Auth0JwtAuthorizer
+        Authorizers:
+          Auth0JwtAuthorizer:
+            JwtConfiguration:
+              issuer: !Ref Auth0IssuerParam
+              audience:
+                - !Ref Auth0AudienceParam
+            IdentitySource: $request.header.Authorization
+
   TranslatedEmailsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -232,6 +251,7 @@ Resources:
           Properties:
             Path: /auth/google/start
             Method: GET
+            ApiId: !Ref GmailTranslatorHttpApi
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -282,6 +302,7 @@ Resources:
           Properties:
             Path: /auth/google/callback
             Method: GET
+            ApiId: !Ref GmailTranslatorHttpApi
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -329,6 +350,7 @@ Resources:
           Properties:
             Path: /auth/google/disconnect
             Method: POST
+            ApiId: !Ref GmailTranslatorHttpApi
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -346,10 +368,10 @@ Outputs:
     Value: !GetAtt TranslatorFunction.Arn
   OAuthHttpApiBaseUrl:
     Description: Base URL for the OAuth HttpApi
-    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+    Value: !Sub https://${GmailTranslatorHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
   GoogleOAuthCallbackUrl:
     Description: Deployed Google OAuth callback URL
-    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/auth/google/callback
+    Value: !Sub https://${GmailTranslatorHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/auth/google/callback
   GmailConnectionsTableName:
     Description: DynamoDB table for per-user Gmail connections
     Value: !Ref GmailConnectionsTable
