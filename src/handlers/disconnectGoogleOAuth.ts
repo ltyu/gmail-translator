@@ -1,15 +1,11 @@
 import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { KMSClient } from "@aws-sdk/client-kms";
+import { ConditionalCheckFailedException, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { DynamoDbGmailConnectionRepository } from "../repositories/dynamoDbGmailConnectionRepository.js";
 import { JwtAuthenticatedAppUserProvider } from "../services/jwtAuthenticatedAppUserProvider.js";
 import { IGmailConnectionRepository, IAuthenticatedAppUserProvider } from "../types.js";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-// KMS client is not needed for disconnect but kept for consistency with other handlers
-const _kms = new KMSClient({});
 
 type DisconnectGoogleOAuthConfig = {
   gmailConnectionsTable: string;
