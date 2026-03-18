@@ -43,10 +43,16 @@ describe("startGoogleOAuth", () => {
     });
 
     const response = await handler({
-      headers: { "x-authenticated-user-id": "user-123" },
+      headers: {},
       requestContext: {
         domainName: "example.com",
         stage: "$default",
+        authorizer: {
+          jwt: {
+            claims: { sub: "google-oauth2|user-123" },
+            scopes: [],
+          },
+        },
       },
     } as any);
 

@@ -1,12 +1,12 @@
 import { randomBytes } from "node:crypto";
 import {
-  APIGatewayProxyEventV2,
+  APIGatewayProxyEventV2WithJWTAuthorizer,
   APIGatewayProxyStructuredResultV2,
 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SSMClient } from "@aws-sdk/client-ssm";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { HeaderAuthenticatedAppUserProvider } from "../services/headerAuthenticatedAppUserProvider.js";
+import { JwtAuthenticatedAppUserProvider } from "../services/jwtAuthenticatedAppUserProvider.js";
 import { DynamoDbOAuthStateRepository } from "../repositories/dynamoDbOAuthStateRepository.js";
 import { GoogleOAuthClient } from "../services/googleOAuthClient.js";
 import { ParameterStoreService } from "../services/parameterStore.js";
@@ -28,7 +28,7 @@ type StartGoogleOAuthConfig = {
 
 type StartGoogleOAuthDependencies = {
   parameterStore: ParameterStoreService;
-  authProvider: IAuthenticatedAppUserProvider<APIGatewayProxyEventV2>;
+  authProvider: IAuthenticatedAppUserProvider<APIGatewayProxyEventV2WithJWTAuthorizer>;
   oauthStateRepository: IOAuthStateRepository;
   googleOAuthClient?: IGoogleOAuthClient;
   createState?: () => string;
@@ -54,7 +54,7 @@ function createState(): string {
   return randomBytes(24).toString("hex");
 }
 
-function buildCallbackUrl(event: APIGatewayProxyEventV2): string {
+function buildCallbackUrl(event: APIGatewayProxyEventV2WithJWTAuthorizer): string {
   const domainName = event.requestContext?.domainName;
   const stage = event.requestContext?.stage;
 
@@ -75,7 +75,7 @@ export function createStartGoogleOAuthHandler(
   const oauthClient = dependencies.googleOAuthClient ?? new GoogleOAuthClient();
 
   return async function startGoogleOAuth(
-    event: APIGatewayProxyEventV2,
+    event: APIGatewayProxyEventV2WithJWTAuthorizer,
   ): Promise<APIGatewayProxyStructuredResultV2> {
     const authenticatedUser =
       await dependencies.authProvider.getAuthenticatedUser(event);
@@ -120,12 +120,12 @@ export function createStartGoogleOAuthHandler(
 }
 
 export async function handler(
-  event: APIGatewayProxyEventV2,
+  event: APIGatewayProxyEventV2WithJWTAuthorizer,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const config = getConfig();
   const defaultHandler = createStartGoogleOAuthHandler({
     parameterStore: new ParameterStoreService(ssm, config.appSecretsPrefix),
-    authProvider: new HeaderAuthenticatedAppUserProvider(),
+    authProvider: new JwtAuthenticatedAppUserProvider(),
     oauthStateRepository: new DynamoDbOAuthStateRepository(
       ddb,
       config.oauthStateTable,

@@ -122,6 +122,13 @@ export interface IAuthenticatedAppUserProvider<TRequestContext = unknown> {
   getAuthenticatedUser(context: TRequestContext): Promise<IAuthenticatedAppUser | null>;
 }
 
+// Claims injected by API Gateway after verifying a JWT issued by Auth0.
+// The `sub` claim is the stable user identifier (e.g. "google-oauth2|1234567890").
+export type JwtClaims = {
+  sub: string;
+  [claim: string]: string;
+};
+
 export type OAuthStateRecord = {
   state: string;
   userId: string;
