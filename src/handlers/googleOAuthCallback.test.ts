@@ -23,8 +23,11 @@ describe("googleOAuthCallback", () => {
       oauthStateRepository: { create: vi.fn(), consume: vi.fn() },
       gmailConnectionRepository: { upsertPrimary: vi.fn() } as any,
       tokenEncryptionService: { encryptRefreshToken: vi.fn() } as any,
-      exchangeCodeForTokens: vi.fn(),
-      getGoogleAccountProfile: vi.fn(),
+      googleOAuthClient: {
+        exchangeCodeForTokens: vi.fn(),
+        getGoogleAccountProfile: vi.fn(),
+        buildConsentUrl: vi.fn(),
+      },
     });
 
     const response = await handler({ queryStringParameters: {} } as any);
@@ -59,14 +62,17 @@ describe("googleOAuthCallback", () => {
       tokenEncryptionService: {
         encryptRefreshToken: vi.fn().mockResolvedValue("encrypted-token"),
       } as any,
-      exchangeCodeForTokens: vi.fn().mockResolvedValue({
-        refreshToken: "refresh-token",
-        accessToken: "access-token",
-      }),
-      getGoogleAccountProfile: vi.fn().mockResolvedValue({
-        googleSub: "google-sub-123",
-        gmailAddress: "person@example.com",
-      }),
+      googleOAuthClient: {
+        exchangeCodeForTokens: vi.fn().mockResolvedValue({
+          refreshToken: "refresh-token",
+          accessToken: "access-token",
+        }),
+        getGoogleAccountProfile: vi.fn().mockResolvedValue({
+          googleSub: "google-sub-123",
+          gmailAddress: "person@example.com",
+        }),
+        buildConsentUrl: vi.fn(),
+      },
       getNow: () => new Date("2026-03-17T10:05:00.000Z"),
       logger: { error: vi.fn() },
     });
@@ -114,8 +120,11 @@ describe("googleOAuthCallback", () => {
       },
       gmailConnectionRepository: { upsertPrimary: vi.fn() } as any,
       tokenEncryptionService: { encryptRefreshToken: vi.fn() } as any,
-      exchangeCodeForTokens: vi.fn().mockResolvedValue({ accessToken: "access-token" }),
-      getGoogleAccountProfile: vi.fn(),
+      googleOAuthClient: {
+        exchangeCodeForTokens: vi.fn().mockResolvedValue({ accessToken: "access-token" }),
+        getGoogleAccountProfile: vi.fn(),
+        buildConsentUrl: vi.fn(),
+      },
       getNow: () => new Date("2026-03-17T10:05:00.000Z"),
       logger,
     });
