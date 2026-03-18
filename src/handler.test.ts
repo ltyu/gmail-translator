@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { processActiveConnections, processInbox } from "./handler.js";
 import {
-  IEmailMessage,
+  EmailMessage,
   IGmailConnectionRepository,
   IGmailTokenEncryptionService,
   IGmailService,
@@ -182,7 +182,7 @@ function gmailServiceThatShouldNotBeUsed(): IGmailService {
   throw new Error("createGmailService should not be called");
 }
 
-function makeMessage(overrides: Partial<IEmailMessage> = {}): IEmailMessage {
+function makeMessage(overrides: Partial<EmailMessage> = {}): EmailMessage {
   return {
     id: "1",
     threadId: "thread-1",

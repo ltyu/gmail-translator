@@ -1,8 +1,8 @@
 import { google } from "googleapis";
 import {
-  IGoogleAccountProfile,
+  GoogleAccountProfile,
   IGoogleOAuthClient,
-  ITokenExchangeResult,
+  TokenExchangeResult,
 } from "../types.js";
 
 const GOOGLE_OAUTH_SCOPES = [
@@ -18,7 +18,7 @@ export class GoogleOAuthClient implements IGoogleOAuthClient {
     clientSecret: string;
     redirectUri: string;
     code: string;
-  }): Promise<ITokenExchangeResult> {
+  }): Promise<TokenExchangeResult> {
     const oauth2Client = new google.auth.OAuth2(
       input.clientId,
       input.clientSecret,
@@ -38,7 +38,7 @@ export class GoogleOAuthClient implements IGoogleOAuthClient {
     redirectUri: string;
     accessToken?: string;
     refreshToken?: string;
-  }): Promise<IGoogleAccountProfile> {
+  }): Promise<GoogleAccountProfile> {
     const oauth2Client = new google.auth.OAuth2(
       input.clientId,
       input.clientSecret,

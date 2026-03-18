@@ -1,32 +1,32 @@
-export interface IAppConfig {
+export type AppConfig = {
   processedEmailTable: string;
   appSecretsPrefix: string;
   gmailConnectionsTable?: string;
   gmailConnectionsStatusIndex?: string;
   gmailTokenKmsKeyId?: string;
   googleOAuthCallbackUrl?: string;
-}
+};
 
-export interface IAppSecrets {
+export type AppSecrets = {
   anthropicApiKey: string;
   gmailOAuthClientId: string;
   gmailOAuthClientSecret: string;
-}
+};
 
-export interface IGmailOAuthAppCredentials {
+export type GmailOAuthAppCredentials = {
   clientId: string;
   clientSecret: string;
-}
+};
 
-export interface ITokenExchangeResult {
+export type TokenExchangeResult = {
   refreshToken?: string;
   accessToken?: string;
-}
+};
 
-export interface IGoogleAccountProfile {
+export type GoogleAccountProfile = {
   googleSub: string;
   gmailAddress?: string;
-}
+};
 
 export interface IGoogleOAuthClient {
   exchangeCodeForTokens(input: {
@@ -34,14 +34,14 @@ export interface IGoogleOAuthClient {
     clientSecret: string;
     redirectUri: string;
     code: string;
-  }): Promise<ITokenExchangeResult>;
+  }): Promise<TokenExchangeResult>;
   getGoogleAccountProfile(input: {
     clientId: string;
     clientSecret: string;
     redirectUri: string;
     accessToken?: string;
     refreshToken?: string;
-  }): Promise<IGoogleAccountProfile>;
+  }): Promise<GoogleAccountProfile>;
   buildConsentUrl(clientId: string, callbackUrl: string, state: string): string;
 }
 
@@ -51,7 +51,7 @@ export type GmailConnectionStatus = (typeof GMAIL_CONNECTION_STATUSES)[number];
 
 export const PRIMARY_GMAIL_CONNECTION_ID = "primary" as const;
 
-export interface IGmailConnectionRecord {
+export type GmailConnectionRecord = {
   // Internal app user that owns this Gmail connection.
   userId: string;
   // Fixed primary connection id for the MVP.
@@ -68,9 +68,9 @@ export interface IGmailConnectionRecord {
   createdAt: string;
   // When the connection record last changed.
   updatedAt: string;
-}
+};
 
-export interface IUpsertPrimaryGmailConnectionInput {
+export type UpsertPrimaryGmailConnectionInput = {
   // Internal app user that owns this Gmail connection.
   userId: string;
   // Stable Google account subject from OAuth identity data.
@@ -83,35 +83,35 @@ export interface IUpsertPrimaryGmailConnectionInput {
   status?: GmailConnectionStatus;
   // Timestamp to use for createdAt/updatedAt bookkeeping.
   occurredAt: string;
-}
+};
 
-export interface IClearPrimaryGmailRefreshTokenInput {
+export type ClearPrimaryGmailRefreshTokenInput = {
   // Internal app user that owns this Gmail connection.
   userId: string;
   // State to apply after removing the stored refresh token.
   status?: Extract<GmailConnectionStatus, "revoked" | "error">;
   // Timestamp to use for the status/token update.
   occurredAt: string;
-}
+};
 
 export interface IGmailConnectionRepository {
-  upsertPrimary(input: IUpsertPrimaryGmailConnectionInput): Promise<IGmailConnectionRecord>;
-  loadPrimaryByUserId(userId: string): Promise<IGmailConnectionRecord | null>;
-  listActive(limit?: number): Promise<IGmailConnectionRecord[]>;
+  upsertPrimary(input: UpsertPrimaryGmailConnectionInput): Promise<GmailConnectionRecord>;
+  loadPrimaryByUserId(userId: string): Promise<GmailConnectionRecord | null>;
+  listActive(limit?: number): Promise<GmailConnectionRecord[]>;
   markRevoked(userId: string, occurredAt: string): Promise<void>;
   markError(userId: string, occurredAt: string): Promise<void>;
-  clearRefreshToken(input: IClearPrimaryGmailRefreshTokenInput): Promise<void>;
+  clearRefreshToken(input: ClearPrimaryGmailRefreshTokenInput): Promise<void>;
   removePrimary(userId: string): Promise<void>;
 }
 
-export interface IGmailTokenEncryptionContext {
+export type GmailTokenEncryptionContext = {
   userId: string;
   connectionId?: string;
-}
+};
 
 export interface IGmailTokenEncryptionService {
-  encryptRefreshToken(token: string, context: IGmailTokenEncryptionContext): Promise<string>;
-  decryptRefreshToken(ciphertext: string, context: IGmailTokenEncryptionContext): Promise<string>;
+  encryptRefreshToken(token: string, context: GmailTokenEncryptionContext): Promise<string>;
+  decryptRefreshToken(ciphertext: string, context: GmailTokenEncryptionContext): Promise<string>;
 }
 
 export interface IAuthenticatedAppUser {
@@ -122,54 +122,54 @@ export interface IAuthenticatedAppUserProvider<TRequestContext = unknown> {
   getAuthenticatedUser(context: TRequestContext): Promise<IAuthenticatedAppUser | null>;
 }
 
-export interface IOAuthStateRecord {
+export type OAuthStateRecord = {
   state: string;
   userId: string;
   redirectUri: string;
   createdAt: string;
   expiresAt: string;
-}
+};
 
-export interface ICreateOAuthStateInput {
+export type CreateOAuthStateInput = {
   state: string;
   userId: string;
   redirectUri: string;
   createdAt: string;
   expiresAt: string;
-}
+};
 
 export interface IOAuthStateRepository {
-  create(input: ICreateOAuthStateInput): Promise<void>;
-  consume(state: string): Promise<IOAuthStateRecord | null>;
+  create(input: CreateOAuthStateInput): Promise<void>;
+  consume(state: string): Promise<OAuthStateRecord | null>;
 }
 
-export interface IInboxMessageSummary {
+export type InboxMessageSummary = {
   id: string;
-}
+};
 
-export interface IEmailMessage {
+export type EmailMessage = {
   id: string;
   threadId: string;
   subject: string;
   from: string;
   messageId: string;
   bodyText: string;
-}
+};
 
-export interface ISendReplyInput {
+export type SendReplyInput = {
   to: string;
   subject: string;
   messageId: string;
   threadId: string;
   translation: string;
   originalText: string;
-}
+};
 
 export interface IGmailService {
   getAuthenticatedEmail(): Promise<string>;
-  listRecentInboxMessages(sinceEpochSeconds: number): Promise<IInboxMessageSummary[]>;
-  getMessage(id: string): Promise<IEmailMessage>;
-  sendReply(input: ISendReplyInput): Promise<void>;
+  listRecentInboxMessages(sinceEpochSeconds: number): Promise<InboxMessageSummary[]>;
+  getMessage(id: string): Promise<EmailMessage>;
+  sendReply(input: SendReplyInput): Promise<void>;
 }
 
 export interface ITranslationService {

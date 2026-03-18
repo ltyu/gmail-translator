@@ -1,4 +1,4 @@
-import { ISendReplyInput } from "../types.js";
+import { SendReplyInput } from "../types.js";
 
 export function buildReplyBody(translation: string, originalText: string): string {
   return [
@@ -13,7 +13,7 @@ export function buildReplyBody(translation: string, originalText: string): strin
   ].join("\n");
 }
 
-export function buildRawReply(input: ISendReplyInput): string {
+export function buildRawReply(input: SendReplyInput): string {
   const replyHeaders = [
     `To: ${input.to}`,
     `In-Reply-To: ${input.messageId}`,

@@ -7,12 +7,12 @@ import {
   PutCommand,
 } from "@aws-sdk/lib-dynamodb";
 import {
-  IClearPrimaryGmailRefreshTokenInput,
-  IGmailConnectionRecord,
+  ClearPrimaryGmailRefreshTokenInput,
+  GmailConnectionRecord,
   IGmailConnectionRepository,
   GmailConnectionStatus,
   PRIMARY_GMAIL_CONNECTION_ID,
-  IUpsertPrimaryGmailConnectionInput,
+  UpsertPrimaryGmailConnectionInput,
 } from "../types.js";
 
 type GmailConnectionItem = {
@@ -52,7 +52,7 @@ function buildStatusKeys(status: GmailConnectionStatus, updatedAt: string) {
   };
 }
 
-function fromItem(item: GmailConnectionItem): IGmailConnectionRecord {
+function fromItem(item: GmailConnectionItem): GmailConnectionRecord {
   return {
     userId: item.pk,
     connectionId: PRIMARY_GMAIL_CONNECTION_ID,
@@ -72,7 +72,7 @@ export class DynamoDbGmailConnectionRepository implements IGmailConnectionReposi
     private readonly statusIndexName: string,
   ) {}
 
-  async upsertPrimary(input: IUpsertPrimaryGmailConnectionInput): Promise<IGmailConnectionRecord> {
+  async upsertPrimary(input: UpsertPrimaryGmailConnectionInput): Promise<GmailConnectionRecord> {
     const existing = await this.loadPrimaryByUserId(input.userId);
     const status = input.status ?? "active";
     const item: GmailConnectionItem = {
@@ -96,7 +96,7 @@ export class DynamoDbGmailConnectionRepository implements IGmailConnectionReposi
     return fromItem(item);
   }
 
-  async loadPrimaryByUserId(userId: string): Promise<IGmailConnectionRecord | null> {
+  async loadPrimaryByUserId(userId: string): Promise<GmailConnectionRecord | null> {
     const response = await this.ddb.send(
       new GetCommand({
         TableName: this.tableName,
@@ -108,8 +108,8 @@ export class DynamoDbGmailConnectionRepository implements IGmailConnectionReposi
     return item ? fromItem(item) : null;
   }
 
-  async listActive(limit?: number): Promise<IGmailConnectionRecord[]> {
-    const records: IGmailConnectionRecord[] = [];
+  async listActive(limit?: number): Promise<GmailConnectionRecord[]> {
+    const records: GmailConnectionRecord[] = [];
     let exclusiveStartKey: Record<string, unknown> | undefined;
 
     do {
@@ -141,7 +141,7 @@ export class DynamoDbGmailConnectionRepository implements IGmailConnectionReposi
     await this.updateConnectionStatus(userId, "error", occurredAt);
   }
 
-  async clearRefreshToken(input: IClearPrimaryGmailRefreshTokenInput): Promise<void> {
+  async clearRefreshToken(input: ClearPrimaryGmailRefreshTokenInput): Promise<void> {
     const status = input.status ?? "revoked";
     const statusKeys = buildStatusKeys(status, input.occurredAt);
 

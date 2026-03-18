@@ -11,8 +11,8 @@ import { KmsGmailTokenEncryptionService } from "./services/kmsGmailTokenEncrypti
 import { ParameterStoreService } from "./services/parameterStore.js";
 import { AnthropicTranslationService } from "./services/translatorService.js";
 import {
-  IAppConfig,
-  IGmailConnectionRecord,
+  AppConfig,
+  GmailConnectionRecord,
   IGmailConnectionRepository,
   IGmailService,
   IGmailTokenEncryptionService,
@@ -25,7 +25,7 @@ const ssm = new SSMClient({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const kms = new KMSClient({});
 
-function getConfig(): IAppConfig {
+function getConfig(): AppConfig {
   const processedEmailTable = process.env.PROCESSED_EMAILS_TABLE ?? process.env.DYNAMODB_TABLE;
   const appSecretsPrefix = process.env.APP_SECRETS_SSM_PREFIX ?? process.env.SSM_PREFIX;
   const gmailConnectionsTable = process.env.GMAIL_CONNECTIONS_TABLE;
@@ -63,7 +63,7 @@ function getConfig(): IAppConfig {
 
 let parameterStore: ParameterStoreService | null = null;
 
-function getParameterStore(config: IAppConfig): ParameterStoreService {
+function getParameterStore(config: AppConfig): ParameterStoreService {
   if (!parameterStore) {
     parameterStore = new ParameterStoreService(ssm, config.appSecretsPrefix);
   }
@@ -80,7 +80,7 @@ function isPermanentGmailAuthError(error: unknown): boolean {
 }
 
 function createConnectionLogger(
-  connection: IGmailConnectionRecord,
+  connection: GmailConnectionRecord,
   logger: Pick<Console, "log">,
 ): Pick<Console, "log"> {
   const prefix = `[user:${connection.userId}]`;
@@ -94,7 +94,7 @@ function createConnectionLogger(
 
 function createScopedProcessedEmailRepository(
   repository: IProcessedEmailRepository,
-  connection: IGmailConnectionRecord,
+  connection: GmailConnectionRecord,
 ): IProcessedEmailRepository {
   function scopedMessageId(emailId: string): string {
     return `${connection.userId}:${emailId}`;
@@ -111,7 +111,7 @@ function createScopedProcessedEmailRepository(
 }
 
 export async function processActiveConnections(
-  connections: IGmailConnectionRecord[],
+  connections: GmailConnectionRecord[],
   gmailConnectionRepository: IGmailConnectionRepository,
   tokenEncryptionService: IGmailTokenEncryptionService,
   appSecrets: { gmailOAuthClientId: string; gmailOAuthClientSecret: string },

@@ -1,5 +1,5 @@
 import { DeleteCommand, DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { ICreateOAuthStateInput, IOAuthStateRecord, IOAuthStateRepository } from "../types.js";
+import { CreateOAuthStateInput, OAuthStateRecord, IOAuthStateRepository } from "../types.js";
 
 type OAuthStateItem = {
   state: string;
@@ -20,7 +20,7 @@ export class DynamoDbOAuthStateRepository implements IOAuthStateRepository {
     private readonly tableName: string,
   ) {}
 
-  async create(input: ICreateOAuthStateInput): Promise<void> {
+  async create(input: CreateOAuthStateInput): Promise<void> {
     const item: OAuthStateItem = {
       state: input.state,
       userId: input.userId,
@@ -42,7 +42,7 @@ export class DynamoDbOAuthStateRepository implements IOAuthStateRepository {
     );
   }
 
-  async consume(state: string): Promise<IOAuthStateRecord | null> {
+  async consume(state: string): Promise<OAuthStateRecord | null> {
     const response = await this.ddb.send(
       new DeleteCommand({
         TableName: this.tableName,

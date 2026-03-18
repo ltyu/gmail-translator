@@ -1,15 +1,15 @@
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
-import { IAppSecrets } from "../types.js";
+import { AppSecrets } from "../types.js";
 
 export class ParameterStoreService {
-  private cachedParams: IAppSecrets | null = null;
+  private cachedParams: AppSecrets | null = null;
 
   constructor(
     private readonly ssm: SSMClient,
     private readonly prefix: string,
   ) {}
 
-  async loadParams(): Promise<IAppSecrets> {
+  async loadParams(): Promise<AppSecrets> {
     if (this.cachedParams) {
       return this.cachedParams;
     }
