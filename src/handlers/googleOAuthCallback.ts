@@ -1,4 +1,4 @@
-import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { KMSClient } from "@aws-sdk/client-kms";
 import { SSMClient } from "@aws-sdk/client-ssm";
@@ -100,7 +100,7 @@ export function createGoogleOAuthCallbackHandler(dependencies: GoogleOAuthCallba
   const logger = dependencies.logger ?? console;
 
   return async function googleOAuthCallback(
-    event: APIGatewayProxyEventV2,
+    event: APIGatewayProxyEventV2WithJWTAuthorizer,
   ): Promise<APIGatewayProxyStructuredResultV2> {
     const config = getConfig();
     const code = event.queryStringParameters?.code;
@@ -170,7 +170,7 @@ export function createGoogleOAuthCallbackHandler(dependencies: GoogleOAuthCallba
 }
 
 export async function handler(
-  event: APIGatewayProxyEventV2,
+  event: APIGatewayProxyEventV2WithJWTAuthorizer,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const config = getConfig();
   const defaultHandler = createGoogleOAuthCallbackHandler({
