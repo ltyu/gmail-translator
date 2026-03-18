@@ -41,19 +41,19 @@ DynamoDB tracks which emails have been processed (with 30-day auto-cleanup via T
 ### 1. Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 Run the unit tests at any time with:
 
 ```bash
-npm test
+pnpm test
 ```
 
 For secret scanning, install `gitleaks` locally and run:
 
 ```bash
-npm run secrets:scan
+pnpm secrets:scan
 ```
 
 ### 2. OAuth setup
@@ -67,7 +67,7 @@ Create Google OAuth credentials in the [Google Cloud Console](https://console.cl
 If you still need a local one-off token for manual testing, you can use the legacy helper:
 
 ```bash
-npx tsx setup-gmail-token.ts <client_id> <client_secret>
+pnpm exec tsx setup-gmail-token.ts <client_id> <client_secret>
 ```
 
 This opens a browser for Google consent and prints a refresh token for local/manual use. The deployed multi-user flow stores per-user refresh tokens encrypted with KMS in DynamoDB instead of relying on a single shared token.
@@ -144,16 +144,16 @@ test/                                 # Vitest unit tests
 ## Development
 
 ```bash
-npm test        # run tests in watch mode
-npm run test:run
-npm run secrets:scan
-npm run secrets:scan:changes
-npx tsc --noEmit
-npm run build
+pnpm test        # run tests in watch mode
+pnpm test:run
+pnpm secrets:scan
+pnpm secrets:scan:changes
+pnpm exec tsc --noEmit
+pnpm build
 ```
 
 ## Secret Scanning
 
 - `gitleaks` is used to scan the repo for hardcoded secrets
-- `.husky/pre-commit` runs `npm run secrets:scan:staged` before each commit
+- `.husky/pre-commit` runs `pnpm run secrets:scan:staged` before each commit
 - install `gitleaks` from the official releases: `https://github.com/gitleaks/gitleaks/releases`

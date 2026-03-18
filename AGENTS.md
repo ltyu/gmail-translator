@@ -36,37 +36,37 @@ Repository guidance for coding agents working in `gmail-translator`.
 
 ## Setup And Daily Commands
 
-- Install dependencies: `npm install`
-- Build once: `npm run build`
-- Test in watch mode: `npm test`
-- Test once: `npm run test:run`
-- Type-check: `npx tsc --noEmit`
-- Local handler run: `npx tsx local-test.ts`
-- Gmail token setup: `npx tsx setup-gmail-token.ts <client_id> <client_secret>`
+- Install dependencies: `pnpm install`
+- Build once: `pnpm build`
+- Test in watch mode: `pnpm test`
+- Test once: `pnpm test:run`
+- Type-check: `pnpm exec tsc --noEmit`
+- Local handler run: `pnpm exec tsx local-test.ts`
+- Gmail token setup: `pnpm exec tsx setup-gmail-token.ts <client_id> <client_secret>`
 - SAM deploy flow from README: `sam build` then `sam deploy --guided`
 
 ## Build, Lint, And Test Notes
 
 - There is no dedicated ESLint script in this repo.
 - There is no Prettier config in this repo.
-- Treat `npx tsc --noEmit` as the main static check.
-- Use `npm run test:run` for one-shot verification.
-- Use `npm run build` when entrypoint wiring or bundle behavior changes.
+- Treat `pnpm exec tsc --noEmit` as the main static check.
+- Use `pnpm test:run` for one-shot verification.
+- Use `pnpm build` when entrypoint wiring or bundle behavior changes.
 - If you touch secrets or auth flow, also run a secret scan.
 
 ## Running A Single Test
 
-- Single test file once: `npm run test:run -- src/handler.test.ts`
-- Single test by name once: `npm run test:run -- -t "translates, replies, and marks processed"`
-- Direct Vitest file run: `npx vitest run src/handler.test.ts`
-- Direct Vitest file + name: `npx vitest run src/handler.test.ts -t "translates, replies, and marks processed"`
-- For local watch mode on one file, pass the path to `npm test -- <path>` or run `npx vitest <path>`.
+- Single test file once: `pnpm test:run -- src/handler.test.ts`
+- Single test by name once: `pnpm test:run -- -t "translates, replies, and marks processed"`
+- Direct Vitest file run: `pnpm exec vitest run src/handler.test.ts`
+- Direct Vitest file + name: `pnpm exec vitest run src/handler.test.ts -t "translates, replies, and marks processed"`
+- For local watch mode on one file, pass the path to `pnpm test -- <path>` or run `pnpm exec vitest <path>`.
 
 ## Secret Scanning
 
-- Full repo scan: `npm run secrets:scan`
-- Pending changes scan: `npm run secrets:scan:changes`
-- Staged changes scan: `npm run secrets:scan:staged`
+- Full repo scan: `pnpm secrets:scan`
+- Pending changes scan: `pnpm secrets:scan:changes`
+- Staged changes scan: `pnpm run secrets:scan:staged`
 - The pre-commit hook requires `gitleaks` and runs the staged scan automatically.
 
 ## Type Guidance
