@@ -11,13 +11,13 @@ import { KmsGmailTokenEncryptionService } from "./services/kmsGmailTokenEncrypti
 import { ParameterStoreService } from "./services/parameterStore.js";
 import { AnthropicTranslationService } from "./services/translatorService.js";
 import {
-  AppConfig,
-  GmailConnectionRecord,
-  GmailConnectionRepository,
-  GmailService,
-  GmailTokenEncryptionService,
-  ProcessedEmailRepository,
-  TranslationService,
+  IAppConfig,
+  IGmailConnectionRecord,
+  IGmailConnectionRepository,
+  IGmailService,
+  IGmailTokenEncryptionService,
+  IProcessedEmailRepository,
+  ITranslationService,
 } from "./types.js";
 import { buildGmailClient } from "./utils/buildGmailClient.js";
 
@@ -25,7 +25,7 @@ const ssm = new SSMClient({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const kms = new KMSClient({});
 
-function getConfig(): AppConfig {
+function getConfig(): IAppConfig {
   const processedEmailTable = process.env.PROCESSED_EMAILS_TABLE ?? process.env.DYNAMODB_TABLE;
   const appSecretsPrefix = process.env.APP_SECRETS_SSM_PREFIX ?? process.env.SSM_PREFIX;
   const gmailConnectionsTable = process.env.GMAIL_CONNECTIONS_TABLE;
@@ -63,7 +63,7 @@ function getConfig(): AppConfig {
 
 let parameterStore: ParameterStoreService | null = null;
 
-function getParameterStore(config: AppConfig): ParameterStoreService {
+function getParameterStore(config: IAppConfig): ParameterStoreService {
   if (!parameterStore) {
     parameterStore = new ParameterStoreService(ssm, config.appSecretsPrefix);
   }
@@ -80,7 +80,7 @@ function isPermanentGmailAuthError(error: unknown): boolean {
 }
 
 function createConnectionLogger(
-  connection: GmailConnectionRecord,
+  connection: IGmailConnectionRecord,
   logger: Pick<Console, "log">,
 ): Pick<Console, "log"> {
   const prefix = `[user:${connection.userId}]`;
@@ -93,9 +93,9 @@ function createConnectionLogger(
 }
 
 function createScopedProcessedEmailRepository(
-  repository: ProcessedEmailRepository,
-  connection: GmailConnectionRecord,
-): ProcessedEmailRepository {
+  repository: IProcessedEmailRepository,
+  connection: IGmailConnectionRecord,
+): IProcessedEmailRepository {
   function scopedMessageId(emailId: string): string {
     return `${connection.userId}:${emailId}`;
   }
@@ -111,14 +111,14 @@ function createScopedProcessedEmailRepository(
 }
 
 export async function processActiveConnections(
-  connections: GmailConnectionRecord[],
-  gmailConnectionRepository: GmailConnectionRepository,
-  tokenEncryptionService: GmailTokenEncryptionService,
+  connections: IGmailConnectionRecord[],
+  gmailConnectionRepository: IGmailConnectionRepository,
+  tokenEncryptionService: IGmailTokenEncryptionService,
   appSecrets: { gmailOAuthClientId: string; gmailOAuthClientSecret: string },
-  translationService: TranslationService,
-  processedEmailRepository: ProcessedEmailRepository,
+  translationService: ITranslationService,
+  processedEmailRepository: IProcessedEmailRepository,
   logger: Pick<Console, "log"> = console,
-  createGmailService: (refreshToken: string) => GmailService = (refreshToken: string) =>
+  createGmailService: (refreshToken: string) => IGmailService = (refreshToken: string) =>
     new GmailMessageService(
       buildGmailClient(
         {
@@ -164,9 +164,9 @@ export async function processActiveConnections(
 }
 
 export async function processInbox(
-  gmailService: GmailService,
-  translationService: TranslationService,
-  processedEmailRepository: ProcessedEmailRepository,
+  gmailService: IGmailService,
+  translationService: ITranslationService,
+  processedEmailRepository: IProcessedEmailRepository,
   logger: Pick<Console, "log"> = console,
 ): Promise<void> {
   const myEmail = await gmailService.getAuthenticatedEmail();

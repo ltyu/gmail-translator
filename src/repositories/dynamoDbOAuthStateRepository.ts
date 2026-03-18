@@ -1,26 +1,26 @@
 import { DeleteCommand, DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { CreateOAuthStateInput, OAuthStateRecord, OAuthStateRepository } from "../types.js";
+import { ICreateOAuthStateInput, IOAuthStateRecord, IOAuthStateRepository } from "../types.js";
 
-interface OAuthStateItem {
+type OAuthStateItem = {
   state: string;
   userId: string;
   redirectUri: string;
   createdAt: string;
   expiresAt: string;
   ttl: number;
-}
+};
 
 function toTtl(expiresAt: string): number {
   return Math.floor(new Date(expiresAt).getTime() / 1000);
 }
 
-export class DynamoDbOAuthStateRepository implements OAuthStateRepository {
+export class DynamoDbOAuthStateRepository implements IOAuthStateRepository {
   constructor(
     private readonly ddb: DynamoDBDocumentClient,
     private readonly tableName: string,
   ) {}
 
-  async create(input: CreateOAuthStateInput): Promise<void> {
+  async create(input: ICreateOAuthStateInput): Promise<void> {
     const item: OAuthStateItem = {
       state: input.state,
       userId: input.userId,
@@ -42,7 +42,7 @@ export class DynamoDbOAuthStateRepository implements OAuthStateRepository {
     );
   }
 
-  async consume(state: string): Promise<OAuthStateRecord | null> {
+  async consume(state: string): Promise<IOAuthStateRecord | null> {
     const response = await this.ddb.send(
       new DeleteCommand({
         TableName: this.tableName,

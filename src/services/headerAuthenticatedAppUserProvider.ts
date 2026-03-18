@@ -1,12 +1,12 @@
 import { APIGatewayProxyEventV2 } from "aws-lambda";
-import { AuthenticatedAppUser, AuthenticatedAppUserProvider } from "../types.js";
+import { IAuthenticatedAppUser, IAuthenticatedAppUserProvider } from "../types.js";
 
 const AUTHENTICATED_USER_HEADER = "x-authenticated-user-id";
 
 export class HeaderAuthenticatedAppUserProvider
-  implements AuthenticatedAppUserProvider<APIGatewayProxyEventV2>
+  implements IAuthenticatedAppUserProvider<APIGatewayProxyEventV2>
 {
-  async getAuthenticatedUser(event: APIGatewayProxyEventV2): Promise<AuthenticatedAppUser | null> {
+  async getAuthenticatedUser(event: APIGatewayProxyEventV2): Promise<IAuthenticatedAppUser | null> {
     const userId = event.headers[AUTHENTICATED_USER_HEADER];
 
     if (!userId) {

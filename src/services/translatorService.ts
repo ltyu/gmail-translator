@@ -1,10 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { TranslationService } from "../types.js";
+import { ITranslationService } from "../types.js";
 
 const MODEL = "claude-haiku-4-5-20251001";
 const MODEL_TOKENS = 8192;
 
-export class AnthropicTranslationService implements TranslationService {
+export class AnthropicTranslationService implements ITranslationService {
   constructor(private readonly anthropic: Anthropic) {}
 
   async translateText(text: string): Promise<string> {

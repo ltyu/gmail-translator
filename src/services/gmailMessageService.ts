@@ -2,13 +2,13 @@ import { gmail_v1 } from "googleapis";
 import { extractBody, getHeader } from "../utils/emailParser.js";
 import { buildRawReply } from "../utils/replyComposer.js";
 import {
-  EmailMessage,
-  GmailService,
-  InboxMessageSummary,
-  SendReplyInput,
+  IEmailMessage,
+  IGmailService,
+  IInboxMessageSummary,
+  ISendReplyInput,
 } from "../types.js";
 
-export class GmailMessageService implements GmailService {
+export class GmailMessageService implements IGmailService {
   constructor(private readonly gmailClient: gmail_v1.Gmail) {}
 
   async getAuthenticatedEmail(): Promise<string> {
@@ -22,7 +22,7 @@ export class GmailMessageService implements GmailService {
     return emailAddress;
   }
 
-  async listRecentInboxMessages(sinceEpochSeconds: number): Promise<InboxMessageSummary[]> {
+  async listRecentInboxMessages(sinceEpochSeconds: number): Promise<IInboxMessageSummary[]> {
     const response = await this.gmailClient.users.messages.list({
       userId: "me",
       q: `is:inbox after:${sinceEpochSeconds} -from:me`,
@@ -34,7 +34,7 @@ export class GmailMessageService implements GmailService {
       .map((message) => ({ id: message.id }));
   }
 
-  async getMessage(id: string): Promise<EmailMessage> {
+  async getMessage(id: string): Promise<IEmailMessage> {
     const response = await this.gmailClient.users.messages.get({
       userId: "me",
       id,
@@ -59,7 +59,7 @@ export class GmailMessageService implements GmailService {
     };
   }
 
-  async sendReply(input: SendReplyInput): Promise<void> {
+  async sendReply(input: ISendReplyInput): Promise<void> {
     await this.gmailClient.users.messages.send({
       userId: "me",
       requestBody: {
