@@ -64,6 +64,7 @@ Create Google OAuth credentials in the [Google Cloud Console](https://console.cl
 - register the callback URL from the deployed stack output `GoogleOAuthCallbackUrl`
 - expect the app to request identity scopes (`openid`, `email`) in addition to the minimal Gmail scopes needed for inbox processing
 - for SPA clients, call `/auth/google/start` with `Authorization: Bearer <token>`, read the returned `authorizationUrl`, then redirect the browser to that URL
+- the SAM HttpApi CORS config currently allows `http://localhost:3000` for local SPA development
 
 If you still need a local one-off token for manual testing, you can use the legacy helper:
 

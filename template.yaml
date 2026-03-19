@@ -48,6 +48,15 @@ Resources:
   GmailTranslatorHttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - http://localhost:3000
+        AllowHeaders:
+          - authorization
+          - content-type
+        AllowMethods:
+          - GET
+          - OPTIONS
       Auth:
         DefaultAuthorizer: Auth0JwtAuthorizer
         Authorizers:
