@@ -61,14 +61,8 @@ function getConfig(): AppConfig {
   };
 }
 
-let parameterStore: ParameterStoreService | null = null;
-
-function getParameterStore(config: AppConfig): ParameterStoreService {
-  if (!parameterStore) {
-    parameterStore = new ParameterStoreService(ssm, config.appSecretsPrefix);
-  }
-
-  return parameterStore;
+function createParameterStore(config: AppConfig): ParameterStoreService {
+  return new ParameterStoreService(ssm, config.appSecretsPrefix);
 }
 
 function isPermanentGmailAuthError(error: unknown): boolean {
@@ -76,7 +70,12 @@ function isPermanentGmailAuthError(error: unknown): boolean {
     return false;
   }
 
-  return error.message.includes("invalid_grant") || error.message.includes("invalid credentials");
+  const message = error.message.toLowerCase();
+
+  return (
+    message.includes("invalid_grant") ||
+    message.includes("invalid credentials")
+  );
 }
 
 function createConnectionLogger(
@@ -210,7 +209,7 @@ export async function processInbox(
 
 export async function handler(_event: ScheduledEvent): Promise<void> {
   const config = getConfig();
-  const params = await getParameterStore(config).loadParams();
+  const params = await createParameterStore(config).loadParams();
   const gmailConnectionRepository = new DynamoDbGmailConnectionRepository(
     ddb,
     config.gmailConnectionsTable!,

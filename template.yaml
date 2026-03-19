@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: Gmail English-to-Chinese translator using Claude
 
@@ -132,14 +132,14 @@ Resources:
       Description: Encrypt per-user Gmail refresh tokens stored in DynamoDB
       EnableKeyRotation: true
       KeyPolicy:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Sid: AllowRootAccountAdministration
             Effect: Allow
             Principal:
               AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
-            Action: 'kms:*'
-            Resource: '*'
+            Action: "kms:*"
+            Resource: "*"
 
   GmailRefreshTokenKeyAlias:
     Type: AWS::KMS::Alias
@@ -219,7 +219,7 @@ Resources:
         EntryPoints:
           - src/handler.ts
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
 
   StartGoogleOAuthFunction:
     Type: AWS::Serverless::Function
@@ -270,7 +270,7 @@ Resources:
         EntryPoints:
           - src/handlers/startGoogleOAuth.ts
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
 
   GoogleOAuthCallbackFunction:
     Type: AWS::Serverless::Function
@@ -323,7 +323,7 @@ Resources:
         EntryPoints:
           - src/handlers/googleOAuthCallback.ts
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
 
   DisconnectGoogleOAuthFunction:
     Type: AWS::Serverless::Function
@@ -371,7 +371,7 @@ Resources:
         EntryPoints:
           - src/handlers/disconnectGoogleOAuth.ts
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
 
 Outputs:
   TranslatorFunctionArn:
