@@ -7,7 +7,7 @@ s3_prefix = "gmail-translator-staging"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 image_repositories = []
-parameter_overrides = "AppSecretsSsmPrefixParam=\"/gmail-translator-staging\" ResourceNamePrefixParam=\"gmail-translator-staging\" GmailConnectionSuccessRedirectUrlParam=\"https://example.com/settings/integrations/gmail/success\" GmailConnectionFailureRedirectUrlParam=\"https://example.com/settings/integrations/gmail/error\" Auth0IssuerParam=\"https://YOUR_DOMAIN.auth0.com/\" Auth0AudienceParam=\"https://gmail-translator-api\""
+parameter_overrides = "AppSecretsSsmPrefixParam=\"/gmail-translator-staging\" ResourceNamePrefixParam=\"gmail-translator-staging\" GmailConnectionSuccessRedirectUrlParam=\"https://example.com/settings/integrations/gmail/success\" GmailConnectionFailureRedirectUrlParam=\"https://example.com/settings/integrations/gmail/error\" Auth0IssuerParam=\"https://dev-5uenuyh0prgwkwe6.us.auth0.com/\" Auth0AudienceParam=\"https://gmail-translator-api\""
 # Auth0IssuerParam: found in Auth0 dashboard under Applications > APIs > your API > Settings (e.g. https://YOUR_DOMAIN.auth0.com/)
 # Auth0AudienceParam: the identifier you set when creating the API in Auth0 (e.g. https://gmail-translator-api)
 
