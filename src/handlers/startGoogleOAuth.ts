@@ -106,15 +106,18 @@ export function createStartGoogleOAuthHandler(
       expiresAt,
     });
 
+    const authorizationUrl = oauthClient.buildConsentUrl(
+      params.gmailOAuthClientId,
+      callbackUrl,
+      state,
+    );
+
     return {
-      statusCode: 302,
+      statusCode: 200,
       headers: {
-        location: oauthClient.buildConsentUrl(
-          params.gmailOAuthClientId,
-          callbackUrl,
-          state,
-        ),
+        "content-type": "application/json",
       },
+      body: JSON.stringify({ authorizationUrl }),
     };
   };
 }

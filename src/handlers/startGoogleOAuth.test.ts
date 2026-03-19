@@ -26,7 +26,7 @@ describe("startGoogleOAuth", () => {
     expect(response.body).toContain("Authentication required");
   });
 
-  it("persists state and redirects to Google consent", async () => {
+  it("persists state and returns the Google consent URL", async () => {
     const create = vi.fn().mockResolvedValue(undefined);
     const handler = createStartGoogleOAuthHandler({
       parameterStore: {
@@ -63,13 +63,19 @@ describe("startGoogleOAuth", () => {
       createdAt: "2026-03-17T10:00:00.000Z",
       expiresAt: "2026-03-17T10:10:00.000Z",
     });
-    expect(response.statusCode).toBe(302);
-    expect(response.headers?.location).toContain("https://accounts.google.com/o/oauth2/v2/auth?");
-    expect(response.headers?.location).toContain("client_id=client-id");
-    expect(response.headers?.location).toContain("redirect_uri=https%3A%2F%2Fexample.com%2Fauth%2Fgoogle%2Fcallback");
-    expect(response.headers?.location).toContain("access_type=offline");
-    expect(response.headers?.location).toContain("prompt=consent");
-    expect(response.headers?.location).toContain("scope=openid+email+");
-    expect(response.headers?.location).toContain("state=state-123");
+    expect(response.statusCode).toBe(200);
+    expect(response.headers?.["content-type"]).toBe("application/json");
+
+    const body = JSON.parse(response.body ?? "{}");
+
+    expect(body.authorizationUrl).toContain("https://accounts.google.com/o/oauth2/v2/auth?");
+    expect(body.authorizationUrl).toContain("client_id=client-id");
+    expect(body.authorizationUrl).toContain(
+      "redirect_uri=https%3A%2F%2Fexample.com%2Fauth%2Fgoogle%2Fcallback",
+    );
+    expect(body.authorizationUrl).toContain("access_type=offline");
+    expect(body.authorizationUrl).toContain("prompt=consent");
+    expect(body.authorizationUrl).toContain("scope=openid+email+");
+    expect(body.authorizationUrl).toContain("state=state-123");
   });
 });

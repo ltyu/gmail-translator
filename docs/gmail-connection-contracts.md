@@ -12,6 +12,7 @@
 - `GMAIL_CONNECTION_SUCCESS_REDIRECT_URL`: future OAuth callback success redirect target.
 - `GMAIL_CONNECTION_FAILURE_REDIRECT_URL`: future OAuth callback failure redirect target.
 - `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect` are wired in SAM as HttpApi routes; disconnect remains placeholder-level until `LEY-7`.
+- `/auth/google/start` returns JSON with an `authorizationUrl` for SPA callers to redirect the browser to Google consent.
 
 ## App secrets vs user connection data
 
@@ -22,9 +23,10 @@
 
 ## Request and auth boundary
 
-- All three OAuth routes (`/auth/google/start`, `/auth/google/callback`, `/auth/google/disconnect`) are protected by an Auth0 JWT authorizer configured on the API Gateway HTTP API.
-- API Gateway verifies the JWT signature (via Auth0's JWKS endpoint), expiry, issuer, and audience before any Lambda is invoked. Requests without a valid `Authorization: Bearer <token>` header receive a `401` immediately, before Lambda is ever called.
-- Inside Lambda, `JwtAuthenticatedAppUserProvider` reads `userId` from `event.requestContext.authorizer.jwt.claims.sub` — the verified subject claim injected by API Gateway. This value is always a stable Auth0 user identifier (e.g. `google-oauth2|1234567890` for Google-federated users).
+- `/auth/google/start` and `/auth/google/disconnect` are protected by an Auth0 JWT authorizer configured on the API Gateway HTTP API.
+- API Gateway verifies the JWT signature (via Auth0's JWKS endpoint), expiry, issuer, and audience before protected Lambdas are invoked. Requests without a valid `Authorization: Bearer <token>` header receive a `401` immediately, before Lambda is ever called.
+- Inside protected Lambdas, `JwtAuthenticatedAppUserProvider` reads `userId` from `event.requestContext.authorizer.jwt.claims.sub` — the verified subject claim injected by API Gateway. This value is always a stable Auth0 user identifier (e.g. `google-oauth2|1234567890` for Google-federated users).
+- `/auth/google/callback` is intentionally public so Google can complete the redirect back to the backend without an app Bearer token.
 - The `IAuthenticatedAppUserProvider` interface is preserved so the auth provider can vary by environment (e.g. a test double in unit tests).
 - OAuth state records are consumed on callback so one-time `state` values cannot be reused.
 - OAuth callback code calls `GmailConnectionRepository.upsertPrimary()` to store the encrypted refresh token scoped to the `userId`.
