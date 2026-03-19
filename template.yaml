@@ -303,6 +303,8 @@ Resources:
             Path: /auth/google/callback
             Method: GET
             ApiId: !Ref GmailTranslatorHttpApi
+            Auth:
+              Authorizer: NONE
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

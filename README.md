@@ -63,6 +63,7 @@ Create Google OAuth credentials in the [Google Cloud Console](https://console.cl
 - use a Google OAuth **Web application** client for the backend start/callback flow
 - register the callback URL from the deployed stack output `GoogleOAuthCallbackUrl`
 - expect the app to request identity scopes (`openid`, `email`) in addition to the minimal Gmail scopes needed for inbox processing
+- for SPA clients, call `/auth/google/start` with `Authorization: Bearer <token>`, read the returned `authorizationUrl`, then redirect the browser to that URL
 
 If you still need a local one-off token for manual testing, you can use the legacy helper:
 
@@ -100,7 +101,7 @@ SAM now provisions:
 - scaffolded HttpApi routes and Lambda functions for `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect`
 - stack outputs for `OAuthHttpApiBaseUrl` and `GoogleOAuthCallbackUrl`
 
-The OAuth start and callback handlers are implemented in the stacked MVP work, while the disconnect handler remains a placeholder until `LEY-7`.
+The OAuth start handler returns JSON for SPA callers, and the callback route stays public so Google can complete the redirect. The disconnect handler remains a placeholder until `LEY-7`.
 
 ### 4. Verify
 
