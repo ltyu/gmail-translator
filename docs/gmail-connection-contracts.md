@@ -20,14 +20,16 @@
 - `buildGmailClient` now requires app OAuth credentials plus a user-scoped refresh token supplied by caller code.
 - The scheduled worker now lists active Gmail connections from DynamoDB, decrypts each refresh token with KMS, and processes each inbox sequentially.
 
-## Request and auth boundary for later issues
+## Request and auth boundary
 
-- Later request handlers should provide a stable internal `userId` through `AuthenticatedAppUserProvider`.
-- The repo does not assume Clerk, Auth0, Cognito, or any frontend SDK. Only the internal `userId` contract matters.
-- `LEY-11` currently resolves the signed-in user from the trusted `x-authenticated-user-id` request header via `HeaderAuthenticatedAppUserProvider`.
-- `LEY-9` consumes OAuth state records on callback so one-time `state` values cannot be reused.
-- OAuth callback code should call `GmailConnectionRepository.upsertPrimary()` for the MVP.
-- Worker code that needs to process many users should call `listActive()` and decrypt each stored token with the same `userId` and `connectionId` encryption context.
+- All three OAuth routes (`/auth/google/start`, `/auth/google/callback`, `/auth/google/disconnect`) are protected by an Auth0 JWT authorizer configured on the API Gateway HTTP API.
+- API Gateway verifies the JWT signature (via Auth0's JWKS endpoint), expiry, issuer, and audience before any Lambda is invoked. Requests without a valid `Authorization: Bearer <token>` header receive a `401` immediately, before Lambda is ever called.
+- Inside Lambda, `JwtAuthenticatedAppUserProvider` reads `userId` from `event.requestContext.authorizer.jwt.claims.sub` — the verified subject claim injected by API Gateway. This value is always a stable Auth0 user identifier (e.g. `google-oauth2|1234567890` for Google-federated users).
+- The `IAuthenticatedAppUserProvider` interface is preserved so the auth provider can vary by environment (e.g. a test double in unit tests).
+- OAuth state records are consumed on callback so one-time `state` values cannot be reused.
+- OAuth callback code calls `GmailConnectionRepository.upsertPrimary()` to store the encrypted refresh token scoped to the `userId`.
+- Worker code that needs to process many users calls `listActive()` and decrypts each stored token with the same `userId` and `connectionId` encryption context.
+- See `docs/auth0-setup.md` for the one-time Auth0 tenant configuration steps.
 
 ## Data model notes
 
