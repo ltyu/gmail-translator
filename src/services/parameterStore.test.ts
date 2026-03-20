@@ -19,6 +19,33 @@ describe("ParameterStoreService", () => {
     await service.loadParams();
 
     expect(send).toHaveBeenCalledTimes(3);
+    expect(send).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          Name: "/gmail-translator/anthropic-api-key",
+          WithDecryption: true,
+        }),
+      }),
+    );
+    expect(send).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          Name: "/gmail-translator/gmail-client-id",
+          WithDecryption: true,
+        }),
+      }),
+    );
+    expect(send).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          Name: "/gmail-translator/gmail-client-secret",
+          WithDecryption: true,
+        }),
+      }),
+    );
   });
 
   it("throws when a parameter is missing", async () => {

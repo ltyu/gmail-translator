@@ -34,7 +34,10 @@ export class ParameterStoreService {
 
   private async getParam(name: string): Promise<string> {
     const response = await this.ssm.send(
-      new GetParameterCommand({ Name: `${this.prefix}/${name}` }),
+      new GetParameterCommand({
+        Name: `${this.prefix}/${name}`,
+        WithDecryption: true,
+      }),
     );
     const value = response.Parameter?.Value;
 
