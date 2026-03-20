@@ -181,29 +181,32 @@ Resources:
           GMAIL_CONNECTIONS_TABLE: !Ref GmailConnectionsTable
           GMAIL_CONNECTIONS_STATUS_INDEX: gsi1
           GMAIL_TOKEN_KMS_KEY_ID: !Ref GmailRefreshTokenKey
-          GMAIL_CONNECTION_SUCCESS_REDIRECT_URL: !Ref GmailConnectionSuccessRedirectUrlParam
-          GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
-          GOOGLE_OAUTH_STATES_TABLE: !Ref GoogleOAuthStatesTable
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TranslatedEmailsTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref GmailConnectionsTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref GoogleOAuthStatesTable
         - Statement:
-            Effect: Allow
-            Action:
-              - ssm:GetParameter
-            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/*
-        - Statement:
-            Effect: Allow
-            Action:
-              - kms:Encrypt
-              - kms:Decrypt
-              - kms:GenerateDataKey
-              - kms:DescribeKey
-            Resource: !GetAtt GmailRefreshTokenKey.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt TranslatedEmailsTable.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GmailConnectionsTable}/index/gsi1
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt GmailConnectionsTable.Arn
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/anthropic-api-key
+                - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/gmail-client-id
+                - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/gmail-client-secret
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !GetAtt GmailRefreshTokenKey.Arn
       Events:
         ScheduleEvent:
           Type: Schedule
@@ -230,30 +233,17 @@ Resources:
       Environment:
         Variables:
           APP_SECRETS_SSM_PREFIX: !Ref AppSecretsSsmPrefixParam
-          GMAIL_CONNECTIONS_TABLE: !Ref GmailConnectionsTable
-          GMAIL_CONNECTIONS_STATUS_INDEX: gsi1
-          GMAIL_TOKEN_KMS_KEY_ID: !Ref GmailRefreshTokenKey
-          GMAIL_CONNECTION_SUCCESS_REDIRECT_URL: !Ref GmailConnectionSuccessRedirectUrlParam
-          GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
           GOOGLE_OAUTH_STATES_TABLE: !Ref GoogleOAuthStatesTable
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref GmailConnectionsTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref GoogleOAuthStatesTable
         - Statement:
-            Effect: Allow
-            Action:
-              - ssm:GetParameter
-            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/*
-        - Statement:
-            Effect: Allow
-            Action:
-              - kms:Encrypt
-              - kms:Decrypt
-              - kms:GenerateDataKey
-              - kms:DescribeKey
-            Resource: !GetAtt GmailRefreshTokenKey.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt GoogleOAuthStatesTable.Arn
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/gmail-client-id
       Events:
         StartGoogleOAuthApi:
           Type: HttpApi
@@ -292,23 +282,26 @@ Resources:
           GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
           GOOGLE_OAUTH_STATES_TABLE: !Ref GoogleOAuthStatesTable
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref GmailConnectionsTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref GoogleOAuthStatesTable
         - Statement:
-            Effect: Allow
-            Action:
-              - ssm:GetParameter
-            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/*
-        - Statement:
-            Effect: Allow
-            Action:
-              - kms:Encrypt
-              - kms:Decrypt
-              - kms:GenerateDataKey
-              - kms:DescribeKey
-            Resource: !GetAtt GmailRefreshTokenKey.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+              Resource: !GetAtt GoogleOAuthStatesTable.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt GmailConnectionsTable.Arn
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/gmail-client-id
+                - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/gmail-client-secret
+            - Effect: Allow
+              Action:
+                - kms:Encrypt
+              Resource: !GetAtt GmailRefreshTokenKey.Arn
       Events:
         GoogleOAuthCallbackApi:
           Type: HttpApi
@@ -337,28 +330,14 @@ Resources:
       Handler: disconnectGoogleOAuth.handler
       Environment:
         Variables:
-          APP_SECRETS_SSM_PREFIX: !Ref AppSecretsSsmPrefixParam
           GMAIL_CONNECTIONS_TABLE: !Ref GmailConnectionsTable
           GMAIL_CONNECTIONS_STATUS_INDEX: gsi1
-          GMAIL_TOKEN_KMS_KEY_ID: !Ref GmailRefreshTokenKey
-          GMAIL_CONNECTION_SUCCESS_REDIRECT_URL: !Ref GmailConnectionSuccessRedirectUrlParam
-          GMAIL_CONNECTION_FAILURE_REDIRECT_URL: !Ref GmailConnectionFailureRedirectUrlParam
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref GmailConnectionsTable
         - Statement:
-            Effect: Allow
-            Action:
-              - ssm:GetParameter
-            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AppSecretsSsmPrefixParam}/*
-        - Statement:
-            Effect: Allow
-            Action:
-              - kms:Encrypt
-              - kms:Decrypt
-              - kms:GenerateDataKey
-              - kms:DescribeKey
-            Resource: !GetAtt GmailRefreshTokenKey.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt GmailConnectionsTable.Arn
       Events:
         DisconnectGoogleOAuthApi:
           Type: HttpApi

@@ -16,7 +16,7 @@
 
 ## App secrets vs user connection data
 
-- `ParameterStoreService` now loads only app-wide secrets: Anthropic API key, Gmail OAuth client ID, Gmail OAuth client secret.
+- `ParameterStoreService` now loads only the app-wide secret values each caller needs: the worker loads Anthropic plus Gmail OAuth credentials, the start handler loads only the Gmail client ID, and the callback loads only the Gmail OAuth client ID and client secret.
 - Per-user Gmail refresh tokens must be encrypted with KMS and stored only in `GMAIL_CONNECTIONS_TABLE`.
 - `buildGmailClient` now requires app OAuth credentials plus a user-scoped refresh token supplied by caller code.
 - The scheduled worker now lists active Gmail connections from DynamoDB, decrypts each refresh token with KMS, and processes each inbox sequentially.

@@ -1,8 +1,9 @@
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
-import { AppSecrets } from "../types.js";
+import { AppSecrets, GmailOAuthAppCredentials } from "../types.js";
 
 export class ParameterStoreService {
   private cachedParams: AppSecrets | null = null;
+  private readonly cachedValues = new Map<string, string>();
 
   constructor(
     private readonly ssm: SSMClient,
@@ -28,11 +29,34 @@ export class ParameterStoreService {
     return this.cachedParams;
   }
 
+  async loadGoogleOAuthClientId(): Promise<string> {
+    return this.getParam("gmail-client-id");
+  }
+
+  async loadGoogleOAuthCredentials(): Promise<GmailOAuthAppCredentials> {
+    const [clientId, clientSecret] = await Promise.all([
+      this.getParam("gmail-client-id"),
+      this.getParam("gmail-client-secret"),
+    ]);
+
+    return {
+      clientId,
+      clientSecret,
+    };
+  }
+
   clearCache(): void {
     this.cachedParams = null;
+    this.cachedValues.clear();
   }
 
   private async getParam(name: string): Promise<string> {
+    const cachedValue = this.cachedValues.get(name);
+
+    if (cachedValue) {
+      return cachedValue;
+    }
+
     const response = await this.ssm.send(
       new GetParameterCommand({
         Name: `${this.prefix}/${name}`,
@@ -45,6 +69,7 @@ export class ParameterStoreService {
       throw new Error(`Missing SSM parameter: ${this.prefix}/${name}`);
     }
 
+    this.cachedValues.set(name, value);
     return value;
   }
 }

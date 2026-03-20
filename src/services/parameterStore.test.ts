@@ -54,4 +54,39 @@ describe("ParameterStoreService", () => {
 
     await expect(service.loadParams()).rejects.toThrow("Missing SSM parameter");
   });
+
+  it("loads only the requested OAuth secrets and reuses cached values", async () => {
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce({ Parameter: { Value: "client-id" } })
+      .mockResolvedValueOnce({ Parameter: { Value: "client-secret" } });
+
+    const service = new ParameterStoreService({ send } as any, "/gmail-translator");
+
+    await expect(service.loadGoogleOAuthClientId()).resolves.toBe("client-id");
+    await expect(service.loadGoogleOAuthCredentials()).resolves.toEqual({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+    });
+
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          Name: "/gmail-translator/gmail-client-id",
+          WithDecryption: true,
+        }),
+      }),
+    );
+    expect(send).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          Name: "/gmail-translator/gmail-client-secret",
+          WithDecryption: true,
+        }),
+      }),
+    );
+  });
 });

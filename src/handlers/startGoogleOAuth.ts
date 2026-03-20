@@ -92,7 +92,7 @@ export function createStartGoogleOAuthHandler(
     }
 
     const callbackUrl = buildCallbackUrl(event);
-    const params = await dependencies.parameterStore.loadParams();
+    const gmailOAuthClientId = await dependencies.parameterStore.loadGoogleOAuthClientId();
     const now = getNow();
     const state = generateState();
     const expiresAt = new Date(
@@ -108,7 +108,7 @@ export function createStartGoogleOAuthHandler(
     });
 
     const authorizationUrl = oauthClient.buildConsentUrl(
-      params.gmailOAuthClientId,
+      gmailOAuthClientId,
       callbackUrl,
       state,
     );
