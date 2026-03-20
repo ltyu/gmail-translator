@@ -63,6 +63,22 @@ export class GoogleOAuthClient implements IGoogleOAuthClient {
     };
   }
 
+  async revokeToken(token: string): Promise<void> {
+    const response = await fetch("https://oauth2.googleapis.com/revoke", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ token }).toString(),
+    });
+
+    if (response.ok || response.status === 400) {
+      return;
+    }
+
+    throw new Error(`Google token revocation failed with status ${response.status}`);
+  }
+
   buildConsentUrl(clientId: string, callbackUrl: string, state: string): string {
     const params = new URLSearchParams({
       client_id: clientId,

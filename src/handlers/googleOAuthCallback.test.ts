@@ -26,6 +26,7 @@ describe("googleOAuthCallback", () => {
       googleOAuthClient: {
         exchangeCodeForTokens: vi.fn(),
         getGoogleAccountProfile: vi.fn(),
+        revokeToken: vi.fn(),
         buildConsentUrl: vi.fn(),
       },
     });
@@ -70,6 +71,7 @@ describe("googleOAuthCallback", () => {
           googleSub: "google-sub-123",
           gmailAddress: "person@example.com",
         }),
+        revokeToken: vi.fn(),
         buildConsentUrl: vi.fn(),
       },
       getNow: () => new Date("2026-03-17T10:05:00.000Z"),
@@ -121,6 +123,7 @@ describe("googleOAuthCallback", () => {
       googleOAuthClient: {
         exchangeCodeForTokens: vi.fn().mockResolvedValue({ accessToken: "access-token" }),
         getGoogleAccountProfile: vi.fn(),
+        revokeToken: vi.fn(),
         buildConsentUrl: vi.fn(),
       },
       getNow: () => new Date("2026-03-17T10:05:00.000Z"),

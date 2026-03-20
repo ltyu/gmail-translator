@@ -11,7 +11,7 @@
 - `GOOGLE_OAUTH_CALLBACK_URL`: callback URL derived from the deployed HttpApi for the backend OAuth flow.
 - `GMAIL_CONNECTION_SUCCESS_REDIRECT_URL`: future OAuth callback success redirect target.
 - `GMAIL_CONNECTION_FAILURE_REDIRECT_URL`: future OAuth callback failure redirect target.
-- `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect` are wired in SAM as HttpApi routes; disconnect remains placeholder-level until `LEY-7`.
+- `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect` are wired in SAM as HttpApi routes.
 - `/auth/google/start` returns JSON with an `authorizationUrl` for SPA callers to redirect the browser to Google consent.
 
 ## App secrets vs user connection data
@@ -45,4 +45,4 @@
 
 - `active`: token is expected to work and the connection can be processed.
 - `error`: token exchange or refresh failed and the connection should be excluded from active processing.
-- `revoked`: connection is intentionally disabled, and callers may also clear the encrypted refresh token.
+- `revoked`: connection is intentionally disabled, the encrypted refresh token is cleared locally, and disconnect handlers should also attempt Google-side token revocation.
