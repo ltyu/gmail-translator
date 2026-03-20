@@ -14,6 +14,11 @@ This document covers the one-time manual steps required to configure Auth0 befor
 3. Set an **Identifier** — this is the audience value embedded in every JWT issued for this API (e.g. `https://gmail-translator-api`). It does not need to be a reachable URL.
 4. Leave **Signing Algorithm** as `RS256`
 
+Add API scopes for the frontend user tokens:
+
+- `gmail:connect` for `/auth/google/start`
+- `gmail:disconnect` for `/auth/google/disconnect`
+
 The identifier becomes the `Auth0AudienceParam` SAM parameter.
 
 ## 3. Enable Google social connection
@@ -22,7 +27,15 @@ The identifier becomes the `Auth0AudienceParam` SAM parameter.
 2. Enter your Google OAuth **Client ID** and **Client Secret** (from the Google Cloud Console)
 3. Enable the connection on your application
 
-## 4. Create a test application
+## 4. Create a user-facing application
+
+1. Go to **Applications → Applications → Create Application**
+2. Choose the SPA or regular web app type that matches your frontend
+3. Configure the app to request your API audience plus the `gmail:connect` and `gmail:disconnect` scopes when signing users in
+
+These routes now require end-user access tokens. Machine-to-machine tokens should not be used for Gmail connect or disconnect flows.
+
+## 5. Create a test application for non-user API checks
 
 1. Go to **Applications → Applications → Create Application**
 2. Choose **Machine to Machine** for API testing with tools like Postman or curl
@@ -41,7 +54,9 @@ curl -s --request POST \
   }'
 ```
 
-## 5. Find the values needed for SAM deployment
+Do not use the resulting client-credentials token against `/auth/google/start` or `/auth/google/disconnect`; those routes require end-user tokens with the scopes above.
+
+## 6. Find the values needed for SAM deployment
 
 | SAM parameter | Where to find it |
 |---|---|
