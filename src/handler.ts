@@ -181,7 +181,7 @@ export async function processInbox(
     }
 
     const fullMessage = await gmailService.getMessage(message.id);
-    logger.log(`Processing: "${fullMessage.subject}" from ${fullMessage.from}`);
+    logger.log(`Processing message: ${message.id}`);
 
     if (!fullMessage.bodyText.trim()) {
       logger.log(`Empty body, skipping: ${message.id}`);
@@ -200,7 +200,7 @@ export async function processInbox(
       originalText: fullMessage.bodyText,
     });
 
-    logger.log(`Replied with translation for: "${fullMessage.subject}"`);
+    logger.log(`Replied with translation for message: ${message.id}`);
     await processedEmailRepository.markProcessed(message.id);
   }
 
