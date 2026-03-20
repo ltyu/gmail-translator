@@ -98,7 +98,7 @@ SAM now provisions:
 - `GmailConnectionsTable` for per-user Gmail connections
 - `GoogleOAuthStatesTable` for short-lived OAuth state records
 - `GmailRefreshTokenKey` for encrypting per-user refresh tokens
-- SSM parameters for app-level secrets under `AppSecretsSsmPrefixParam`
+- SecureString SSM parameters for app-level secrets under `AppSecretsSsmPrefixParam`
 - scaffolded HttpApi routes and Lambda functions for `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect`
 - stack outputs for `OAuthHttpApiBaseUrl` and `GoogleOAuthCallbackUrl`
 
