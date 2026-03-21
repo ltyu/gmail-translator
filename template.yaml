@@ -151,21 +151,21 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub ${AppSecretsSsmPrefixParam}/anthropic-api-key
-      Type: SecureString
+      Type: String
       Value: !Ref AnthropicApiKeyParam
 
   GmailClientId:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub ${AppSecretsSsmPrefixParam}/gmail-client-id
-      Type: SecureString
+      Type: String
       Value: !Ref GmailClientIdParam
 
   GmailClientSecret:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub ${AppSecretsSsmPrefixParam}/gmail-client-secret
-      Type: SecureString
+      Type: String
       Value: !Ref GmailClientSecretParam
 
   TranslatorFunction:
