@@ -103,7 +103,7 @@ SAM now provisions:
 - scaffolded HttpApi routes and Lambda functions for `/auth/google/start`, `/auth/google/callback`, and `/auth/google/disconnect`
 - stack outputs for `OAuthHttpApiBaseUrl` and `GoogleOAuthCallbackUrl`
 
-The OAuth start handler returns JSON for SPA callers, and the callback route stays public so Google can complete the redirect. The disconnect handler remains a placeholder until `LEY-7`.
+The OAuth start handler returns JSON for SPA callers, the callback route stays public so Google can complete the redirect, and the disconnect handler clears the local token while attempting Google-side revocation.
 
 ### 4. Verify
 

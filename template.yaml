@@ -332,12 +332,18 @@ Resources:
         Variables:
           GMAIL_CONNECTIONS_TABLE: !Ref GmailConnectionsTable
           GMAIL_CONNECTIONS_STATUS_INDEX: gsi1
+          GMAIL_TOKEN_KMS_KEY_ID: !Ref GmailRefreshTokenKey
       Policies:
         - Statement:
             - Effect: Allow
               Action:
+                - dynamodb:GetItem
                 - dynamodb:UpdateItem
               Resource: !GetAtt GmailConnectionsTable.Arn
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !GetAtt GmailRefreshTokenKey.Arn
       Events:
         DisconnectGoogleOAuthApi:
           Type: HttpApi

@@ -42,6 +42,7 @@ export interface IGoogleOAuthClient {
     accessToken?: string;
     refreshToken?: string;
   }): Promise<GoogleAccountProfile>;
+  revokeToken(token: string): Promise<void>;
   buildConsentUrl(clientId: string, callbackUrl: string, state: string): string;
 }
 
