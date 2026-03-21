@@ -72,6 +72,25 @@ describe("EmailTranslationJob", () => {
     });
     expect(processedEmailRepository.markProcessed).toHaveBeenCalledWith("1");
   });
+
+  it("logs only opaque message identifiers", async () => {
+    vi.mocked(gmailService.listRecentInboxMessages).mockResolvedValue([{ id: "1" }]);
+    vi.mocked(processedEmailRepository.isProcessed).mockResolvedValue(false);
+    vi.mocked(gmailService.getMessage).mockResolvedValue(
+      makeMessage({
+        subject: "Payroll update",
+        from: "finance@example.com",
+      }),
+    );
+    vi.mocked(translationService.translateText).mockResolvedValue("translated");
+
+    await processInbox(gmailService, translationService, processedEmailRepository, logger);
+
+    expect(logger.log).toHaveBeenCalledWith("Processing message: 1");
+    expect(logger.log).toHaveBeenCalledWith("Replied with translation for message: 1");
+    expect(logger.log).not.toHaveBeenCalledWith(expect.stringContaining("Payroll update"));
+    expect(logger.log).not.toHaveBeenCalledWith(expect.stringContaining("finance@example.com"));
+  });
 });
 
 describe("processActiveConnections", () => {
