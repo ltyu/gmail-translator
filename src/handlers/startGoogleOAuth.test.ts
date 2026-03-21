@@ -79,7 +79,7 @@ describe("startGoogleOAuth", () => {
   it("rejects machine-to-machine tokens", async () => {
     const handler = createStartGoogleOAuthHandler({
       parameterStore: { loadParams: vi.fn() } as any,
-      authProvider: new JwtAuthenticatedAppUserProvider(["gmail:connect"]),
+      authProvider: new JwtAuthenticatedAppUserProvider(),
       oauthStateRepository: { create: vi.fn(), consume: vi.fn() },
     });
 

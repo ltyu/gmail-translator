@@ -101,7 +101,7 @@ describe("disconnectGoogleOAuth", () => {
 
   it("returns 401 when the JWT does not represent an end user", async () => {
     const handler = createDisconnectGoogleOAuthHandler({
-      authProvider: new JwtAuthenticatedAppUserProvider(["gmail:disconnect"]),
+      authProvider: new JwtAuthenticatedAppUserProvider(),
       gmailConnectionRepository,
     });
 
