@@ -42,10 +42,9 @@ describe("googleOAuthCallback", () => {
     const upsertPrimary = vi.fn().mockResolvedValue(undefined);
     const handler = createGoogleOAuthCallbackHandler({
       parameterStore: {
-        loadParams: vi.fn().mockResolvedValue({
-          anthropicApiKey: "anthropic",
-          gmailOAuthClientId: "client-id",
-          gmailOAuthClientSecret: "client-secret",
+        loadGoogleOAuthCredentials: vi.fn().mockResolvedValue({
+          clientId: "client-id",
+          clientSecret: "client-secret",
         }),
       } as any,
       oauthStateRepository: {
@@ -102,10 +101,9 @@ describe("googleOAuthCallback", () => {
     const logger = { error: vi.fn() };
     const handler = createGoogleOAuthCallbackHandler({
       parameterStore: {
-        loadParams: vi.fn().mockResolvedValue({
-          anthropicApiKey: "anthropic",
-          gmailOAuthClientId: "client-id",
-          gmailOAuthClientSecret: "client-secret",
+        loadGoogleOAuthCredentials: vi.fn().mockResolvedValue({
+          clientId: "client-id",
+          clientSecret: "client-secret",
         }),
       } as any,
       oauthStateRepository: {

@@ -31,11 +31,7 @@ describe("startGoogleOAuth", () => {
     const create = vi.fn().mockResolvedValue(undefined);
     const handler = createStartGoogleOAuthHandler({
       parameterStore: {
-        loadParams: vi.fn().mockResolvedValue({
-          anthropicApiKey: "anthropic",
-          gmailOAuthClientId: "client-id",
-          gmailOAuthClientSecret: "client-secret",
-        }),
+        loadGoogleOAuthClientId: vi.fn().mockResolvedValue("client-id"),
       } as any,
       authProvider: { getAuthenticatedUser: vi.fn().mockResolvedValue({ userId: "user-123" }) },
       oauthStateRepository: { create, consume: vi.fn() },

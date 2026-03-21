@@ -121,10 +121,10 @@ export function createGoogleOAuthCallbackHandler(dependencies: GoogleOAuthCallba
     }
 
     try {
-      const params = await dependencies.parameterStore.loadParams();
+      const oauthCredentials = await dependencies.parameterStore.loadGoogleOAuthCredentials();
       const tokenResult = await dependencies.googleOAuthClient.exchangeCodeForTokens({
-        clientId: params.gmailOAuthClientId,
-        clientSecret: params.gmailOAuthClientSecret,
+        clientId: oauthCredentials.clientId,
+        clientSecret: oauthCredentials.clientSecret,
         redirectUri: stateRecord.redirectUri,
         code,
       });
@@ -137,8 +137,8 @@ export function createGoogleOAuthCallbackHandler(dependencies: GoogleOAuthCallba
       }
 
       const googleAccountProfile = await dependencies.googleOAuthClient.getGoogleAccountProfile({
-        clientId: params.gmailOAuthClientId,
-        clientSecret: params.gmailOAuthClientSecret,
+        clientId: oauthCredentials.clientId,
+        clientSecret: oauthCredentials.clientSecret,
         redirectUri: stateRecord.redirectUri,
         accessToken: tokenResult.accessToken,
         refreshToken: tokenResult.refreshToken,
