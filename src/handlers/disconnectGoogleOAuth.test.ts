@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { createDisconnectGoogleOAuthHandler } from "./disconnectGoogleOAuth.js";
+import { JwtAuthenticatedAppUserProvider } from "../services/jwtAuthenticatedAppUserProvider.js";
 
 function makeEvent(sub?: string) {
   return {
@@ -96,5 +97,26 @@ describe("disconnectGoogleOAuth", () => {
     });
 
     await expect(handler(makeEvent("google-oauth2|user-789"))).rejects.toThrow("DynamoDB unavailable");
+  });
+
+  it("returns 401 when the JWT does not represent an end user", async () => {
+    const handler = createDisconnectGoogleOAuthHandler({
+      authProvider: new JwtAuthenticatedAppUserProvider(["gmail:disconnect"]),
+      gmailConnectionRepository,
+    });
+
+    const response = await handler({
+      requestContext: {
+        authorizer: {
+          jwt: {
+            claims: { sub: "machine-client@clients", gty: "client-credentials" },
+            scopes: ["gmail:disconnect"],
+          },
+        },
+      },
+    } as any);
+
+    expect(response.statusCode).toBe(401);
+    expect(clearRefreshToken).not.toHaveBeenCalled();
   });
 });

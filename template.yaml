@@ -261,6 +261,10 @@ Resources:
             Path: /auth/google/start
             Method: GET
             ApiId: !Ref GmailTranslatorHttpApi
+            Auth:
+              Authorizer: Auth0JwtAuthorizer
+              AuthorizationScopes:
+                - gmail:connect
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -362,6 +366,10 @@ Resources:
             Path: /auth/google/disconnect
             Method: POST
             ApiId: !Ref GmailTranslatorHttpApi
+            Auth:
+              Authorizer: Auth0JwtAuthorizer
+              AuthorizationScopes:
+                - gmail:disconnect
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

@@ -6,6 +6,7 @@ import { JwtAuthenticatedAppUserProvider } from "../services/jwtAuthenticatedApp
 import { IGmailConnectionRepository, IAuthenticatedAppUserProvider } from "../types.js";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const DISCONNECT_GOOGLE_OAUTH_SCOPE = "gmail:disconnect";
 
 type DisconnectGoogleOAuthConfig = {
   gmailConnectionsTable: string;
@@ -81,7 +82,7 @@ export async function handler(
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const config = getConfig();
   const defaultHandler = createDisconnectGoogleOAuthHandler({
-    authProvider: new JwtAuthenticatedAppUserProvider(),
+    authProvider: new JwtAuthenticatedAppUserProvider([DISCONNECT_GOOGLE_OAUTH_SCOPE]),
     gmailConnectionRepository: new DynamoDbGmailConnectionRepository(
       ddb,
       config.gmailConnectionsTable,

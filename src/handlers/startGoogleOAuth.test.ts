@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createStartGoogleOAuthHandler } from "./startGoogleOAuth.js";
+import { JwtAuthenticatedAppUserProvider } from "../services/jwtAuthenticatedAppUserProvider.js";
 
 describe("startGoogleOAuth", () => {
   const originalEnv = process.env;
@@ -48,13 +49,13 @@ describe("startGoogleOAuth", () => {
         domainName: "example.com",
         stage: "$default",
         authorizer: {
-          jwt: {
-            claims: { sub: "google-oauth2|user-123" },
-            scopes: [],
+            jwt: {
+              claims: { sub: "google-oauth2|user-123" },
+              scopes: ["gmail:connect"],
+            },
           },
         },
-      },
-    } as any);
+      } as any);
 
     expect(create).toHaveBeenCalledWith({
       state: "state-123",
@@ -77,5 +78,28 @@ describe("startGoogleOAuth", () => {
     expect(body.authorizationUrl).toContain("prompt=consent");
     expect(body.authorizationUrl).toContain("scope=openid+email+");
     expect(body.authorizationUrl).toContain("state=state-123");
+  });
+
+  it("rejects machine-to-machine tokens", async () => {
+    const handler = createStartGoogleOAuthHandler({
+      parameterStore: { loadParams: vi.fn() } as any,
+      authProvider: new JwtAuthenticatedAppUserProvider(["gmail:connect"]),
+      oauthStateRepository: { create: vi.fn(), consume: vi.fn() },
+    });
+
+    const response = await handler({
+      requestContext: {
+        domainName: "example.com",
+        stage: "$default",
+        authorizer: {
+          jwt: {
+            claims: { sub: "machine-client@clients", gty: "client-credentials" },
+            scopes: ["gmail:connect"],
+          },
+        },
+      },
+    } as any);
+
+    expect(response.statusCode).toBe(401);
   });
 });

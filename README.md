@@ -63,6 +63,7 @@ Create Google OAuth credentials in the [Google Cloud Console](https://console.cl
 - use a Google OAuth **Web application** client for the backend start/callback flow
 - register the callback URL from the deployed stack output `GoogleOAuthCallbackUrl`
 - expect the app to request identity scopes (`openid`, `email`) in addition to the minimal Gmail scopes needed for inbox processing
+- require Auth0 API scopes `gmail:connect` for `/auth/google/start` and `gmail:disconnect` for `/auth/google/disconnect`
 - for SPA clients, call `/auth/google/start` with `Authorization: Bearer <token>`, read the returned `authorizationUrl`, then redirect the browser to that URL
 - the SAM HttpApi CORS config currently allows `http://localhost:3000` for local SPA development
 
