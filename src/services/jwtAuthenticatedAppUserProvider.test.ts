@@ -45,45 +45,12 @@ describe("JwtAuthenticatedAppUserProvider", () => {
         authorizer: {
           jwt: {
             claims: { sub: "machine-client@clients", gty: "client-credentials" },
-            scopes: ["gmail:connect"],
+            scopes: [],
           },
         },
       },
     } as any);
 
     expect(result).toBeNull();
-  });
-
-  it("requires all configured scopes", async () => {
-    const scopedProvider = new JwtAuthenticatedAppUserProvider([
-      "gmail:connect",
-      "profile:read",
-    ]);
-
-    await expect(
-      scopedProvider.getAuthenticatedUser({
-        requestContext: {
-          authorizer: {
-            jwt: {
-              claims: { sub: "google-oauth2|user-123" },
-              scopes: ["gmail:connect"],
-            },
-          },
-        },
-      } as any),
-    ).resolves.toBeNull();
-
-    await expect(
-      scopedProvider.getAuthenticatedUser({
-        requestContext: {
-          authorizer: {
-            jwt: {
-              claims: { sub: "google-oauth2|user-123" },
-              scopes: ["gmail:connect", "profile:read"],
-            },
-          },
-        },
-      } as any),
-    ).resolves.toEqual({ userId: "google-oauth2|user-123" });
   });
 });

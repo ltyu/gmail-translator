@@ -253,8 +253,6 @@ Resources:
             ApiId: !Ref GmailTranslatorHttpApi
             Auth:
               Authorizer: Auth0JwtAuthorizer
-              AuthorizationScopes:
-                - gmail:connect
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -347,8 +345,6 @@ Resources:
             ApiId: !Ref GmailTranslatorHttpApi
             Auth:
               Authorizer: Auth0JwtAuthorizer
-              AuthorizationScopes:
-                - gmail:disconnect
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

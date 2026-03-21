@@ -17,7 +17,6 @@ import {
 } from "../types.js";
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
-const START_GOOGLE_OAUTH_SCOPE = "gmail:connect";
 
 const ssm = new SSMClient({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -129,7 +128,7 @@ export async function handler(
   const config = getConfig();
   const defaultHandler = createStartGoogleOAuthHandler({
     parameterStore: new ParameterStoreService(ssm, config.appSecretsPrefix),
-    authProvider: new JwtAuthenticatedAppUserProvider([START_GOOGLE_OAUTH_SCOPE]),
+    authProvider: new JwtAuthenticatedAppUserProvider(),
     oauthStateRepository: new DynamoDbOAuthStateRepository(
       ddb,
       config.oauthStateTable,
