@@ -60,7 +60,7 @@ Do not use the resulting client-credentials token against `/auth/google/start` o
 
 | SAM parameter | Where to find it |
 |---|---|
-| `Auth0IssuerParam` | Auth0 dashboard → Applications → APIs → your API → Settings → **Issuer** (format: `https://YOUR_DOMAIN.auth0.com/`) |
+| `Auth0IssuerParam` | Your tenant domain with a trailing slash. Found at **Settings → General → Domain** in the Auth0 dashboard, or under any application's **Settings → Domain** field (format: `https://YOUR_DOMAIN.auth0.com/`) |
 | `Auth0AudienceParam` | The identifier you set in step 2 (e.g. `https://gmail-translator-api`) |
 
 Update `samconfig.toml` with the real values before running `sam deploy`.
